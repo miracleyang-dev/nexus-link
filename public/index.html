@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusLink · 社交人脉管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- D3.js for relationship graph -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Chart.js for dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            cyber: {
+              50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd',
+              300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9',
+              600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+            },
+            neon: { blue: '#00d4ff', purple: '#a855f7', pink: '#ec4899', green: '#10b981' },
+            surface: { 1: '#0a0e1a', 2: '#111827', 3: '#1a2035', 4: '#222b45' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="dark bg-surface-1 text-gray-200 font-sans min-h-screen overflow-x-hidden">
+  <!-- Ambient background effects -->
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-neon-blue/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl"></div>
+    <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-neon-pink/3 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative z-10 flex h-screen">
+    <!-- Mobile Header -->
+    <header id="mobile-header" class="fixed top-0 left-0 right-0 z-40 bg-surface-2/90 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center justify-between md:hidden">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-md bg-gradient-to-br from-neon-blue to-neon-purple flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        </div>
+        <h1 class="text-sm font-bold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">NexusLink</h1>
+      </div>
+      <div class="flex items-center gap-1">
+        <div class="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse"></div>
+      </div>
+    </header>
+
+    <!-- Sidebar Navigation (desktop only) -->
+    <aside id="sidebar" class="hidden md:flex w-60 bg-surface-2/80 backdrop-blur-xl border-r border-white/5 flex-col shrink-0 transition-all duration-300">
+      <!-- Logo -->
+      <div class="p-4 border-b border-white/5">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-blue to-neon-purple flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          </div>
+          <div>
+            <h1 class="text-base font-bold bg-gradient-to-r from-neon-blue to-neon-purple bg-clip-text text-transparent">NexusLink</h1>
+            <p class="text-[9px] text-gray-500 tracking-widest uppercase">人脉管理系统</p>
+          </div>
+        </div>
+      </div>
+      <!-- Nav Items -->
+      <nav class="flex-1 p-2.5 space-y-0.5">
+        <button onclick="switchView('contacts')" data-nav="contacts" class="nav-item active w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
+          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>联系人</span>
+        </button>
+        <button onclick="switchView('timeline')" data-nav="timeline" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
+          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>互动时间线</span>
+        </button>
+        <button onclick="switchView('graph')" data-nav="graph" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
+          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+          <span>关系图谱</span>
+        </button>
+        <button onclick="switchView('reminders')" data-nav="reminders" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
+          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span>智能提醒</span>
+          <span id="reminder-badge" class="ml-auto bg-neon-pink/20 text-neon-pink text-[10px] px-1.5 py-0.5 rounded-full hidden">0</span>
+        </button>
+        <button onclick="switchView('dashboard')" data-nav="dashboard" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
+          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>数据仪表盘</span>
+        </button>
+      </nav>
+      <!-- Sidebar footer -->
+      <div class="p-3 border-t border-white/5">
+        <div class="flex items-center gap-2 text-[11px] text-gray-500">
+          <div class="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse"></div>
+          <span>系统运行中</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav id="mobile-nav" class="fixed bottom-0 left-0 right-0 z-40 bg-surface-2/90 backdrop-blur-xl border-t border-white/5 md:hidden safe-bottom">
+      <div class="flex items-center justify-around px-2 py-1.5">
+        <button onclick="switchView('contacts')" data-nav-m="contacts" class="mobile-nav-item active flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="text-[10px]">联系人</span>
+        </button>
+        <button onclick="switchView('timeline')" data-nav-m="timeline" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-[10px]">时间线</span>
+        </button>
+        <button onclick="switchView('graph')" data-nav-m="graph" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+          <span class="text-[10px]">图谱</span>
+        </button>
+        <button onclick="switchView('reminders')" data-nav-m="reminders" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all relative">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="text-[10px]">提醒</span>
+          <span id="reminder-badge-m" class="absolute -top-0.5 right-1 bg-neon-pink text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center hidden">0</span>
+        </button>
+        <button onclick="switchView('dashboard')" data-nav-m="dashboard" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span class="text-[10px]">仪表盘</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto pt-[52px] pb-[68px] md:pt-0 md:pb-0">
+      <!-- Views will be inserted here by JS -->
+      <div id="view-contacts" class="view-panel"></div>
+      <div id="view-timeline" class="view-panel hidden"></div>
+      <div id="view-graph" class="view-panel hidden"></div>
+      <div id="view-reminders" class="view-panel hidden"></div>
+      <div id="view-dashboard" class="view-panel hidden"></div>
+    </main>
+  </div>
+
+  <!-- Modal Container -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div id="modal-content" class="bg-surface-3 border border-white/10 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-6 right-6 z-[60] space-y-3"></div>
+
+  <!-- JS Modules -->
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/contacts.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/reminders.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
