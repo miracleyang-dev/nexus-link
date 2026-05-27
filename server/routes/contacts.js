@@ -2,15 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET /api/contacts - list all, support search/category/tag filters
+// GET /api/contacts - list all with tags, support filters
 router.get('/', (req, res) => {
   try {
     const { search, category, tag } = req.query;
     let query = `
-      SELECT c.*,
-        GROUP_CONCAT(DISTINCT t.name) as tag_names,
-        GROUP_CONCAT(DISTINCT t.id) as tag_ids,
-        GROUP_CONCAT(DISTINCT t.color) as tag_colors
+      SELECT c.*, GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tag_list
       FROM contacts c
       LEFT JOIN contact_tags ct ON c.id = ct.contact_id
       LEFT JOIN tags t ON ct.tag_id = t.id
@@ -19,40 +16,36 @@ router.get('/', (req, res) => {
     const params = [];
 
     if (search) {
-      conditions.push(`(c.name LIKE ? OR c.company LIKE ? OR c.notes LIKE ?)`);
+      conditions.push(`(c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.company LIKE ? OR c.notes LIKE ?)`);
       const s = `%${search}%`;
-      params.push(s, s, s);
+      params.push(s, s, s, s, s);
     }
     if (category) {
       conditions.push(`c.category = ?`);
       params.push(category);
     }
     if (tag) {
-      conditions.push(`c.id IN (SELECT ct2.contact_id FROM contact_tags ct2 JOIN tags t2 ON ct2.tag_id = t2.id WHERE t2.name = ?)`);
+      conditions.push(`c.id IN (SELECT contact_id FROM contact_tags ct2 JOIN tags t2 ON ct2.tag_id = t2.id WHERE t2.name = ?)`);
       params.push(tag);
     }
 
-    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
-    query += ' GROUP BY c.id ORDER BY c.relationship_level DESC, c.updated_at DESC';
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    query += ' GROUP BY c.id ORDER BY c.updated_at DESC';
 
     const contacts = db.prepare(query).all(...params);
 
-    // Parse tags into array
-    const result = contacts.map(c => {
-      const tags = [];
-      if (c.tag_names) {
-        const names = c.tag_names.split(',');
-        const ids = c.tag_ids.split(',');
-        const colors = c.tag_colors.split(',');
-        for (let i = 0; i < names.length; i++) {
-          tags.push({ id: parseInt(ids[i]), name: names[i], color: colors[i] });
-        }
-      }
-      delete c.tag_names;
-      delete c.tag_ids;
-      delete c.tag_colors;
-      return { ...c, tags };
-    });
+    const result = contacts.map(c => ({
+      ...c,
+      tags: c.tag_list
+        ? c.tag_list.split(',').map(t => {
+            const [id, name, color] = t.split(':');
+            return { id: Number(id), name, color };
+          })
+        : [],
+      tag_list: undefined
+    }));
 
     res.json(result);
   } catch (err) {
@@ -60,7 +53,7 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/contacts/:id - get single contact with tags and recent interactions
+// GET /api/contacts/:id - get one with tags and recent interactions
 router.get('/:id', (req, res) => {
   try {
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
@@ -72,14 +65,11 @@ router.get('/:id', (req, res) => {
       WHERE ct.contact_id = ?
     `).all(req.params.id);
 
-    const recent_interactions = db.prepare(`
-      SELECT * FROM interactions
-      WHERE contact_id = ?
-      ORDER BY date DESC
-      LIMIT 10
+    const interactions = db.prepare(`
+      SELECT * FROM interactions WHERE contact_id = ? ORDER BY date DESC LIMIT 10
     `).all(req.params.id);
 
-    res.json({ ...contact, tags, recent_interactions });
+    res.json({ ...contact, tags, recent_interactions: interactions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -88,13 +78,22 @@ router.get('/:id', (req, res) => {
 // POST /api/contacts - create
 router.post('/', (req, res) => {
   try {
-    const { name, avatar_url, phone, email, company, position, birthday, zodiac, mbti, blood_type, hometown, current_city, personality_traits, strengths, preferences, notes, relationship_level, category } = req.body;
-    if (!name) return res.status(400).json({ error: 'Name is required' });
+    const fields = [
+      'name', 'avatar_url', 'phone', 'email', 'company', 'position',
+      'birthday', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'personality_traits', 'strengths', 'preferences', 'notes',
+      'relationship_level', 'category'
+    ];
+    const data = {};
+    for (const f of fields) {
+      data[f] = req.body[f] !== undefined ? req.body[f] : null;
+    }
+    if (!data.name) return res.status(400).json({ error: 'Name is required' });
 
-    const info = db.prepare(`
-      INSERT INTO contacts (name, avatar_url, phone, email, company, position, birthday, zodiac, mbti, blood_type, hometown, current_city, personality_traits, strengths, preferences, notes, relationship_level, category)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, avatar_url || null, phone || null, email || null, company || null, position || null, birthday || null, zodiac || null, mbti || null, blood_type || null, hometown || null, current_city || null, personality_traits || null, strengths || null, preferences || null, notes || null, relationship_level || 3, category || 'other');
+    const cols = fields.filter(f => data[f] !== null);
+    const placeholders = cols.map(c => '@' + c).join(', ');
+    const stmt = db.prepare(`INSERT INTO contacts (${cols.join(', ')}) VALUES (${placeholders})`);
+    const info = stmt.run(data);
 
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json(contact);
@@ -106,21 +105,29 @@ router.post('/', (req, res) => {
 // PUT /api/contacts/:id - update
 router.put('/:id', (req, res) => {
   try {
-    const existing = db.prepare('SELECT id FROM contacts WHERE id = ?').get(req.params.id);
+    const existing = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Contact not found' });
 
-    const { name, avatar_url, phone, email, company, position, birthday, zodiac, mbti, blood_type, hometown, current_city, personality_traits, strengths, preferences, notes, relationship_level, category } = req.body;
+    const fields = [
+      'name', 'avatar_url', 'phone', 'email', 'company', 'position',
+      'birthday', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'personality_traits', 'strengths', 'preferences', 'notes',
+      'relationship_level', 'category'
+    ];
+    const updates = [];
+    const params = {};
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        updates.push(`${f} = @${f}`);
+        params[f] = req.body[f];
+      }
+    }
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
 
-    db.prepare(`
-      UPDATE contacts SET
-        name = COALESCE(?, name), avatar_url = ?, phone = ?, email = ?, company = ?, position = ?,
-        birthday = ?, zodiac = ?, mbti = ?, blood_type = ?, hometown = ?, current_city = ?,
-        personality_traits = ?, strengths = ?, preferences = ?, notes = ?,
-        relationship_level = COALESCE(?, relationship_level), category = COALESCE(?, category),
-        updated_at = datetime('now')
-      WHERE id = ?
-    `).run(name, avatar_url || null, phone || null, email || null, company || null, position || null, birthday || null, zodiac || null, mbti || null, blood_type || null, hometown || null, current_city || null, personality_traits || null, strengths || null, preferences || null, notes || null, relationship_level, category, req.params.id);
+    updates.push("updated_at = datetime('now')");
+    params.id = req.params.id;
 
+    db.prepare(`UPDATE contacts SET ${updates.join(', ')} WHERE id = @id`).run(params);
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
     res.json(contact);
   } catch (err) {
