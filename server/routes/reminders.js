@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { Solar, Lunar } = require('lunar-javascript');
 
 // GET /api/reminders - list all, support ?upcoming=N (next N days)
 router.get('/', (req, res) => {
@@ -37,31 +38,51 @@ router.get('/upcoming', (req, res) => {
       ORDER BY r.remind_date ASC
     `).all();
 
-    // Auto-generate birthday reminders from contacts
-    const contacts = db.prepare(`SELECT id, name, birthday FROM contacts WHERE birthday IS NOT NULL`).all();
+    // Auto-generate birthday reminders from contacts (supports lunar & solar)
+    const contacts = db.prepare(`SELECT id, name, birthday, birthday_type FROM contacts WHERE birthday IS NOT NULL`).all();
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const thirtyDaysLater = new Date(today);
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
 
     const birthdayReminders = [];
     for (const c of contacts) {
       if (!c.birthday) continue;
-      const [, month, day] = c.birthday.split('-');
-      const thisYearBirthday = new Date(today.getFullYear(), parseInt(month) - 1, parseInt(day));
-      if (thisYearBirthday < today) {
-        thisYearBirthday.setFullYear(thisYearBirthday.getFullYear() + 1);
+      const [, month, day] = c.birthday.split('-').map(Number);
+      let solarDate;
+
+      if (c.birthday_type === 'lunar') {
+        // For lunar birthdays, find this year's solar equivalent
+        try {
+          const lunarBday = Lunar.fromYmd(today.getFullYear(), month, day);
+          solarDate = lunarBday.getSolar();
+          solarDate = new Date(solarDate.getYear(), solarDate.getMonth() - 1, solarDate.getDay());
+          if (solarDate < today) {
+            const nextLunar = Lunar.fromYmd(today.getFullYear() + 1, month, day);
+            const nextSolar = nextLunar.getSolar();
+            solarDate = new Date(nextSolar.getYear(), nextSolar.getMonth() - 1, nextSolar.getDay());
+          }
+        } catch {
+          continue;
+        }
+      } else {
+        solarDate = new Date(today.getFullYear(), month - 1, day);
+        if (solarDate < today) {
+          solarDate.setFullYear(solarDate.getFullYear() + 1);
+        }
       }
-      if (thisYearBirthday >= today && thisYearBirthday <= thirtyDaysLater) {
-        const dateStr = thisYearBirthday.toISOString().split('T')[0];
-        // Check if manual birthday reminder already exists for this contact around this date
+
+      if (solarDate >= today && solarDate <= thirtyDaysLater) {
+        const dateStr = solarDate.toISOString().split('T')[0];
         const exists = manualReminders.some(r => r.contact_id === c.id && r.type === 'birthday');
         if (!exists) {
+          const calLabel = c.birthday_type === 'lunar' ? '农历' : '公历';
           birthdayReminders.push({
             id: null,
             contact_id: c.id,
             contact_name: c.name,
             title: `${c.name}的生日`,
-            description: '自动生成的生日提醒',
+            description: `自动生成 · ${calLabel}${c.birthday.slice(5)}`,
             remind_date: dateStr,
             type: 'birthday',
             is_completed: 0,

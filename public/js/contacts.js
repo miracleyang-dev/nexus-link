@@ -98,7 +98,7 @@ const Contacts = {
             ${c.mbti ? `<span class="font-mono" style="color:${Utils.mbtiColor(c.mbti)}">${c.mbti}</span>` : ''}
             ${c.zodiac ? `<span>${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : ''}
           </div>
-          ${c.birthday ? `<span class="text-[11px] text-gray-500">🎂 ${c.birthday.slice(5)}</span>` : ''}
+          ${c.birthday ? `<span class="text-[11px] text-gray-500">🎂 ${c.birthday.slice(5)}${c.birthday_type === 'lunar' ? ' (农)' : ''}</span>` : ''}
         </div>
       </div>
     `;
@@ -152,7 +152,19 @@ const Contacts = {
         <div class="grid grid-cols-2 gap-4 mb-6">
           ${this.detailField('手机', c.phone, '📱')}
           ${this.detailField('邮箱', c.email, '📧')}
-          ${this.detailField('生日', c.birthday ? `${c.birthday} ${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac || ''}` : null, '🎂')}
+          ${c.birthday ? (() => {
+            const typeLabel = c.birthday_type === 'lunar' ? '农历' : '公历';
+            let birthdayHtml = `${c.birthday} (${typeLabel})`;
+            if (c.birthday_type === 'lunar') {
+              const conv = Utils.lunarToSolar(c.birthday);
+              if (conv) birthdayHtml += `<br><span class="text-gray-500 text-[11px]">公历: ${conv.solar}</span>`;
+            } else {
+              const conv = Utils.solarToLunar(c.birthday);
+              if (conv) birthdayHtml += `<br><span class="text-gray-500 text-[11px]">农历: ${conv.lunarChinese}</span>`;
+            }
+            if (c.zodiac) birthdayHtml += ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>`;
+            return this.detailField('生日', birthdayHtml, '🎂');
+          })() : ''}
           ${this.detailField('MBTI', c.mbti, '🧠')}
           ${this.detailField('血型', c.blood_type ? c.blood_type + '型' : null, '🩸')}
           ${this.detailField('家乡', c.hometown, '🏠')}
@@ -214,6 +226,7 @@ const Contacts = {
       <div class="p-6">
         <h2 class="text-lg font-bold text-white mb-6">${title}</h2>
         <form id="contact-form" onsubmit="Contacts.saveContact(event, ${c.id || 'null'})" class="space-y-4">
+          <!-- Basic Info -->
           <div class="grid grid-cols-2 gap-4">
             <div><label class="detail-label block mb-1">姓名 *</label><input name="name" class="form-input" required value="${c.name || ''}"></div>
             <div><label class="detail-label block mb-1">分类</label>
@@ -221,31 +234,56 @@ const Contacts = {
                 ${Object.entries(Utils.categories).map(([k, v]) => `<option value="${k}" ${c.category === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
               </select>
             </div>
-            <div><label class="detail-label block mb-1">手机</label><input name="phone" class="form-input" value="${c.phone || ''}"></div>
-            <div><label class="detail-label block mb-1">邮箱</label><input name="email" class="form-input" type="email" value="${c.email || ''}"></div>
-            <div><label class="detail-label block mb-1">公司</label><input name="company" class="form-input" value="${c.company || ''}"></div>
-            <div><label class="detail-label block mb-1">职位</label><input name="position" class="form-input" value="${c.position || ''}"></div>
-            <div><label class="detail-label block mb-1">生日</label><input name="birthday" class="form-input" type="date" value="${c.birthday || ''}"></div>
-            <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
-            <div><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
-            <div><label class="detail-label block mb-1">血型</label>
-              <select name="blood_type" class="form-input">
-                <option value="">未知</option>
-                ${['A','B','AB','O'].map(t => `<option value="${t}" ${c.blood_type === t ? 'selected' : ''}>${t}型</option>`).join('')}
-              </select>
-            </div>
-            <div><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}"></div>
-            <div><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}"></div>
-            <div><label class="detail-label block mb-1">亲密度 (1-5)</label>
-              <select name="relationship_level" class="form-input">
-                ${[1,2,3,4,5].map(i => `<option value="${i}" ${(c.relationship_level||3) == i ? 'selected' : ''}>${i} - ${'★'.repeat(i)}</option>`).join('')}
+            <div><label class="detail-label block mb-1">手机 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="phone" class="form-input" value="${c.phone || ''}"></div>
+            <div><label class="detail-label block mb-1">邮箱 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="email" class="form-input" type="email" value="${c.email || ''}"></div>
+            <div><label class="detail-label block mb-1">公司 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="company" class="form-input" value="${c.company || ''}"></div>
+            <div><label class="detail-label block mb-1">职位 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="position" class="form-input" value="${c.position || ''}"></div>
+          </div>
+
+          <!-- Birthday with calendar type -->
+          <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-2"><label class="detail-label block mb-1">生日 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="birthday" class="form-input" type="date" value="${c.birthday || ''}" onchange="Contacts.onBirthdayChange(this)"></div>
+            <div><label class="detail-label block mb-1">历法</label>
+              <select name="birthday_type" class="form-input" onchange="Contacts.onBirthdayTypeChange(this)">
+                <option value="solar" ${(c.birthday_type || 'solar') === 'solar' ? 'selected' : ''}>公历</option>
+                <option value="lunar" ${c.birthday_type === 'lunar' ? 'selected' : ''}>农历</option>
               </select>
             </div>
           </div>
-          <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${c.personality_traits || ''}" placeholder="如：果断,有领导力,目标导向"></div>
-          <div><label class="detail-label block mb-1">个人长处</label><textarea name="strengths" class="form-input" rows="2" placeholder="擅长的能力...">${c.strengths || ''}</textarea></div>
-          <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${c.preferences || ''}</textarea></div>
-          <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${c.notes || ''}</textarea></div>
+          <div id="birthday-conversion" class="text-xs text-gray-500 -mt-2 pl-1 hidden"></div>
+
+          <!-- More Info (collapsible) -->
+          <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.blood_type || c.hometown || c.current_city) ? 'open' : ''}>
+            <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
+            <div class="p-4 pt-2 grid grid-cols-2 gap-4">
+              <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
+              <div><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
+              <div><label class="detail-label block mb-1">血型</label>
+                <select name="blood_type" class="form-input">
+                  <option value="">未知</option>
+                  ${['A','B','AB','O'].map(t => `<option value="${t}" ${c.blood_type === t ? 'selected' : ''}>${t}型</option>`).join('')}
+                </select>
+              </div>
+              <div><label class="detail-label block mb-1">亲密度</label>
+                <select name="relationship_level" class="form-input">
+                  ${[1,2,3,4,5].map(i => `<option value="${i}" ${(c.relationship_level||3) == i ? 'selected' : ''}>${i} - ${'★'.repeat(i)}</option>`).join('')}
+                </select>
+              </div>
+              <div><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}"></div>
+              <div><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}"></div>
+            </div>
+          </details>
+
+          <!-- Personality & Notes -->
+          <details class="border border-white/5 rounded-lg" ${(c.personality_traits || c.strengths || c.preferences || c.notes) ? 'open' : ''}>
+            <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">性格与备注 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
+            <div class="p-4 pt-2 space-y-4">
+              <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${c.personality_traits || ''}" placeholder="如：果断,有领导力,目标导向"></div>
+              <div><label class="detail-label block mb-1">个人长处</label><textarea name="strengths" class="form-input" rows="2" placeholder="擅长的能力...">${c.strengths || ''}</textarea></div>
+              <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${c.preferences || ''}</textarea></div>
+              <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${c.notes || ''}</textarea></div>
+            </div>
+          </details>
 
           <!-- Tags -->
           <div>
@@ -267,6 +305,38 @@ const Contacts = {
         </form>
       </div>
     `);
+
+    // Show conversion hint if birthday is already filled
+    if (c.birthday) {
+      this.updateBirthdayConversion(c.birthday, c.birthday_type || 'solar');
+    }
+  },
+
+  onBirthdayChange(input) {
+    const form = input.closest('form');
+    const type = form.querySelector('[name="birthday_type"]').value;
+    this.updateBirthdayConversion(input.value, type);
+  },
+
+  onBirthdayTypeChange(select) {
+    const form = select.closest('form');
+    const birthday = form.querySelector('[name="birthday"]').value;
+    this.updateBirthdayConversion(birthday, select.value);
+  },
+
+  updateBirthdayConversion(birthday, type) {
+    const el = document.getElementById('birthday-conversion');
+    if (!el || !birthday) { if (el) el.classList.add('hidden'); return; }
+    try {
+      if (type === 'lunar') {
+        const conv = Utils.lunarToSolar(birthday);
+        if (conv) { el.textContent = `对应公历: ${conv.solar}`; el.classList.remove('hidden'); return; }
+      } else {
+        const conv = Utils.solarToLunar(birthday);
+        if (conv) { el.textContent = `对应农历: ${conv.lunarChinese}`; el.classList.remove('hidden'); return; }
+      }
+    } catch {}
+    el.classList.add('hidden');
   },
 
   async saveContact(e, id) {
@@ -278,6 +348,7 @@ const Contacts = {
       data[k] = v;
     }
     data.relationship_level = parseInt(data.relationship_level) || 3;
+    if (!data.birthday_type) data.birthday_type = 'solar';
 
     const tagCheckboxes = e.target.querySelectorAll('input[name="tags"]:checked');
     const tagIds = Array.from(tagCheckboxes).map(cb => parseInt(cb.value));

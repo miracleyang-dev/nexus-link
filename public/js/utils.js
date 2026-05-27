@@ -142,4 +142,59 @@ const Utils = {
     let timer;
     return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
   },
+
+  // Lunar calendar conversion (client-side using LunarJS)
+  solarToLunar(dateStr) {
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const solar = LunarJS.Solar.fromYmd(y, m, d);
+      const lunar = solar.getLunar();
+      return {
+        lunar: `${lunar.getYear()}-${String(Math.abs(lunar.getMonth())).padStart(2,'0')}-${String(lunar.getDay()).padStart(2,'0')}`,
+        lunarChinese: `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`
+      };
+    } catch { return null; }
+  },
+
+  lunarToSolar(dateStr) {
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const lunar = LunarJS.Lunar.fromYmd(y, m, d);
+      const solar = lunar.getSolar();
+      return {
+        solar: `${solar.getYear()}-${String(solar.getMonth()).padStart(2,'0')}-${String(solar.getDay()).padStart(2,'0')}`,
+        lunarChinese: `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`
+      };
+    } catch { return null; }
+  },
+
+  // Get this year's solar birthday from a contact's birthday data
+  getThisYearSolarBirthday(birthday, birthdayType) {
+    if (!birthday) return null;
+    const [, m, d] = birthday.split('-').map(Number);
+    const thisYear = new Date().getFullYear();
+    if (birthdayType === 'lunar') {
+      try {
+        const lunar = LunarJS.Lunar.fromYmd(thisYear, m, d);
+        const solar = lunar.getSolar();
+        return `${solar.getYear()}-${String(solar.getMonth()).padStart(2,'0')}-${String(solar.getDay()).padStart(2,'0')}`;
+      } catch { return null; }
+    }
+    return `${thisYear}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  },
+
+  // Format birthday display with both calendars
+  formatBirthday(birthday, birthdayType) {
+    if (!birthday) return '';
+    const typeLabel = birthdayType === 'lunar' ? '农历' : '公历';
+    let display = `${birthday} (${typeLabel})`;
+    if (birthdayType === 'lunar') {
+      const conv = this.lunarToSolar(birthday);
+      if (conv) display += `\n公历: ${conv.solar}`;
+    } else {
+      const conv = this.solarToLunar(birthday);
+      if (conv) display += `\n农历: ${conv.lunarChinese}`;
+    }
+    return display;
+  },
 };

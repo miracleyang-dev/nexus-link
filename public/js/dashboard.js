@@ -1,224 +1,413 @@
-// Dashboard Module
+// Dashboard Module - Redesigned
 const Dashboard = {
   charts: {},
 
   async init() {
-    const [overview, frequency, levels, monthly, categories] = await Promise.all([
+    const [overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected] = await Promise.all([
       API.getOverview(),
       API.getInteractionFrequency(),
       API.getRelationshipLevels(),
       API.getMonthlyInteractions(),
-      API.getCategoryDistribution()
+      API.getCategoryDistribution(),
+      API.getInteractionTypes(),
+      API.getMoodTrend(),
+      API.getCityDistribution(),
+      API.getNeglected()
     ]);
-    this.render(overview, frequency, levels, monthly, categories);
+    this.render(overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected);
   },
 
-  render(overview, frequency, levels, monthly, categories) {
+  render(overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected) {
     const el = document.getElementById('view-dashboard');
+    // Category labels/colors
+    const catLabels = { friend: '朋友', family: '家人', colleague: '同事', business: '商务', other: '其他' };
+    const catColors = { friend: '#10b981', family: '#f59e0b', colleague: '#3b82f6', business: '#a855f7', other: '#6b7280' };
+
     el.innerHTML = `
       <div class="p-6 lg:p-8">
-        <div class="mb-6">
+        <div class="mb-8">
           <h2 class="text-2xl font-bold text-white">数据仪表盘</h2>
-          <p class="text-sm text-gray-500 mt-1">人脉数据概览与分析</p>
+          <p class="text-sm text-gray-500 mt-1">人脉数据概览与深度分析</p>
         </div>
 
-        <!-- Stat Cards -->
+        <!-- Stat Cards Row -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-          ${this.statCard('联系人总数', overview.total_contacts || 0, '👥', '#00d4ff')}
-          ${this.statCard('本月互动', overview.interactions_this_month || 0, '💬', '#a855f7')}
-          ${this.statCard('待处理提醒', overview.upcoming_reminders || 0, '🔔', '#ec4899')}
-          ${this.statCard('标签数量', overview.tag_count || 0, '🏷️', '#10b981')}
+          ${this.statCard('联系人', overview.total_contacts || 0, '👥', '#00d4ff', overview.new_contacts_this_month ? `本月 +${overview.new_contacts_this_month}` : '')}
+          ${this.statCard('总互动', overview.total_interactions || 0, '💬', '#a855f7', overview.interactions_this_month ? `本月 ${overview.interactions_this_month} 次` : '')}
+          ${this.statCard('平均亲密度', overview.avg_relationship_level || 0, '💎', '#ec4899', '满分 5.0')}
+          ${this.statCard('待处理提醒', overview.upcoming_reminders || 0, '🔔', '#f59e0b', '未来 7 天')}
         </div>
 
-        <!-- Charts Row 1 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <!-- Monthly Interactions -->
-          <div class="glass-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 月度互动趋势</h3>
-            <canvas id="chart-monthly" height="200"></canvas>
+        <!-- Row 1: Monthly Trend + Mood -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+          <div class="lg:col-span-2 glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">互动趋势 & 心情变化</h3>
+            <p class="text-[11px] text-gray-500 mb-4">近12个月互动频率与平均心情</p>
+            <div style="height:220px"><canvas id="chart-trend"></canvas></div>
           </div>
-          <!-- Category Distribution -->
-          <div class="glass-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-gray-300 mb-4">📂 联系人分类</h3>
-            <canvas id="chart-categories" height="200"></canvas>
-          </div>
-        </div>
-
-        <!-- Charts Row 2 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <!-- Interaction Frequency (Top 10) -->
-          <div class="glass-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-gray-300 mb-4">🔥 互动频率 Top 10</h3>
-            <canvas id="chart-frequency" height="240"></canvas>
-          </div>
-          <!-- Relationship Levels -->
-          <div class="glass-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-gray-300 mb-4">💎 亲密度分布</h3>
-            <canvas id="chart-levels" height="240"></canvas>
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">互动方式</h3>
+            <p class="text-[11px] text-gray-500 mb-4">各类型互动占比</p>
+            <div style="height:220px"><canvas id="chart-types"></canvas></div>
           </div>
         </div>
 
-        <!-- Tag Distribution -->
-        ${overview.tag_distribution ? `
-        <div class="glass-card p-5">
-          <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ 标签分布</h3>
-          <div class="flex flex-wrap gap-3">
-            ${overview.tag_distribution.map(t => `
-              <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/5">
-                <div class="w-2.5 h-2.5 rounded-full" style="background:${t.color}"></div>
-                <span class="text-sm text-gray-300">${t.name}</span>
-                <span class="text-xs text-gray-500">${t.count}</span>
-              </div>
-            `).join('')}
+        <!-- Row 2: Top Contacts + Category + Levels -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">互动最频繁</h3>
+            <p class="text-[11px] text-gray-500 mb-4">Top ${frequency.length} 联系人</p>
+            <div id="top-contacts-list" class="space-y-2.5">
+              ${frequency.map((d, i) => {
+                const cat = catColors[d.category] || '#6b7280';
+                const maxCount = frequency[0]?.interaction_count || 1;
+                const pct = Math.round((d.interaction_count / maxCount) * 100);
+                return `<div class="flex items-center gap-3">
+                  <span class="text-[11px] text-gray-500 w-4 text-right">${i+1}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs text-gray-200 truncate">${d.name}</span>
+                      <span class="text-[11px] text-gray-400">${d.interaction_count}次</span>
+                    </div>
+                    <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%;background:${cat}"></div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+              ${frequency.length === 0 ? '<p class="text-xs text-gray-500">暂无数据</p>' : ''}
+            </div>
           </div>
-        </div>` : ''}
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">人脉构成</h3>
+            <p class="text-[11px] text-gray-500 mb-4">按分类统计</p>
+            <div style="height:200px"><canvas id="chart-categories"></canvas></div>
+          </div>
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">亲密度分布</h3>
+            <p class="text-[11px] text-gray-500 mb-4">关系深度层级</p>
+            <div style="height:200px"><canvas id="chart-levels"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Row 3: City + Tags + Neglected -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <!-- City Distribution -->
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">城市分布</h3>
+            <p class="text-[11px] text-gray-500 mb-4">联系人所在城市</p>
+            <div class="space-y-2.5">
+              ${cityDist.map(d => {
+                const maxC = cityDist[0]?.count || 1;
+                const pct = Math.round((d.count / maxC) * 100);
+                return `<div class="flex items-center gap-3">
+                  <span class="text-xs text-gray-300 w-14 truncate">${d.city}</span>
+                  <div class="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div class="h-full rounded-full bg-neon-blue/60" style="width:${pct}%"></div>
+                  </div>
+                  <span class="text-[11px] text-gray-500 w-4 text-right">${d.count}</span>
+                </div>`;
+              }).join('')}
+              ${cityDist.length === 0 ? '<p class="text-xs text-gray-500">暂无数据</p>' : ''}
+            </div>
+          </div>
+
+          <!-- Tag Distribution -->
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">标签分布</h3>
+            <p class="text-[11px] text-gray-500 mb-4">标签使用情况</p>
+            <div class="flex flex-wrap gap-2">
+              ${(overview.tag_distribution || []).map(t => `
+                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/5" style="background:${t.color}10">
+                  <div class="w-2 h-2 rounded-full" style="background:${t.color}"></div>
+                  <span class="text-xs" style="color:${t.color}">${t.name}</span>
+                  <span class="text-[10px] text-gray-500 ml-0.5">${t.count}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Neglected Contacts -->
+          <div class="glass-card p-5">
+            <h3 class="text-sm font-semibold text-gray-300 mb-1">待维护关系</h3>
+            <p class="text-[11px] text-gray-500 mb-4">30天以上未互动</p>
+            <div class="space-y-2">
+              ${neglected.map(d => {
+                const levelColor = ['#6b7280','#f59e0b','#0ea5e9','#a855f7','#ec4899'][d.relationship_level - 1] || '#6b7280';
+                return `<div class="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02]">
+                  ${Utils.avatarHTML(d.name, 28)}
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-gray-200 truncate">${d.name}</p>
+                    <p class="text-[10px] text-gray-500">上次: ${Utils.relativeTime(d.last_interaction)}</p>
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${levelColor}15;color:${levelColor}">
+                    ${'★'.repeat(d.relationship_level)}
+                  </span>
+                </div>`;
+              }).join('')}
+              ${neglected.length === 0 ? '<p class="text-xs text-gray-500">所有关系维护良好</p>' : ''}
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
     // Render charts after DOM update
     setTimeout(() => {
-      this.renderMonthlyChart(monthly);
+      this.renderTrendChart(monthly, moodTrend);
+      this.renderTypesChart(interactionTypes);
       this.renderCategoryChart(categories);
-      this.renderFrequencyChart(frequency);
       this.renderLevelsChart(levels);
-    }, 100);
+    }, 80);
   },
 
-  statCard(label, value, icon, color) {
+  statCard(label, value, icon, color, subtitle) {
     return `
-      <div class="stat-card glass-card p-5" style="--accent-color:${color}">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-2xl">${icon}</span>
-          <span class="text-3xl font-bold text-white">${value}</span>
+      <div class="glass-card p-4 sm:p-5 relative overflow-hidden group">
+        <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 group-hover:opacity-20 transition-opacity" style="background:${color}"></div>
+        <div class="flex items-start justify-between mb-2">
+          <span class="text-xl">${icon}</span>
+          <span class="text-2xl sm:text-3xl font-bold text-white">${value}</span>
         </div>
         <p class="text-xs text-gray-400">${label}</p>
+        ${subtitle ? `<p class="text-[10px] text-gray-600 mt-1">${subtitle}</p>` : ''}
       </div>
     `;
   },
 
-  chartDefaults() {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#9ca3af', font: { size: 11, family: 'Inter' } } },
-      },
-      scales: {
-        x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
-        y: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
-      }
-    };
-  },
-
-  renderMonthlyChart(data) {
-    const ctx = document.getElementById('chart-monthly');
+  // Combined trend chart: interaction count (bar) + mood (line)
+  renderTrendChart(monthly, moodTrend) {
+    const ctx = document.getElementById('chart-trend');
     if (!ctx) return;
-    if (this.charts.monthly) this.charts.monthly.destroy();
-    this.charts.monthly = new Chart(ctx, {
-      type: 'line',
+    if (this.charts.trend) this.charts.trend.destroy();
+
+    // Merge months
+    const allMonths = [...new Set([...monthly.map(d=>d.month), ...moodTrend.map(d=>d.month)])].sort();
+    const monthMap = new Map(monthly.map(d => [d.month, d.count]));
+    const moodMap = new Map(moodTrend.map(d => [d.month, d.avg_mood]));
+
+    this.charts.trend = new Chart(ctx, {
+      type: 'bar',
       data: {
-        labels: data.map(d => d.month),
-        datasets: [{
-          label: '互动次数',
-          data: data.map(d => d.count),
-          borderColor: '#00d4ff',
-          backgroundColor: 'rgba(0,212,255,0.1)',
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#00d4ff',
-          pointBorderColor: '#0a0e1a',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-        }]
+        labels: allMonths.map(m => m.slice(5) + '月'),
+        datasets: [
+          {
+            type: 'bar',
+            label: '互动次数',
+            data: allMonths.map(m => monthMap.get(m) || 0),
+            backgroundColor: 'rgba(0,212,255,0.25)',
+            borderColor: '#00d4ff',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'y',
+            order: 2,
+          },
+          {
+            type: 'line',
+            label: '平均心情',
+            data: allMonths.map(m => moodMap.get(m) || null),
+            borderColor: '#ec4899',
+            backgroundColor: 'rgba(236,72,153,0.1)',
+            pointBackgroundColor: '#ec4899',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false,
+            yAxisID: 'y1',
+            order: 1,
+            spanGaps: true,
+          }
+        ]
       },
-      options: { ...this.chartDefaults(), plugins: { ...this.chartDefaults().plugins, legend: { display: false } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: { color: '#9ca3af', font: { size: 10, family: 'Inter' }, boxWidth: 12, padding: 12 }
+          },
+          tooltip: {
+            backgroundColor: '#1a2035',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            titleFont: { size: 11 },
+            bodyFont: { size: 11 },
+            callbacks: {
+              label: (ctx) => ctx.dataset.label === '平均心情'
+                ? `心情: ${ctx.parsed.y}/5`
+                : `互动: ${ctx.parsed.y}次`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { display: false } },
+          y: {
+            position: 'left',
+            ticks: { color: '#6b7280', font: { size: 10 }, stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.03)' },
+            title: { display: false }
+          },
+          y1: {
+            position: 'right',
+            min: 0, max: 5,
+            ticks: { color: '#ec4899', font: { size: 10 }, stepSize: 1 },
+            grid: { display: false },
+            title: { display: false }
+          }
+        }
+      }
     });
   },
 
+  // Interaction types - horizontal bar
+  renderTypesChart(data) {
+    const ctx = document.getElementById('chart-types');
+    if (!ctx) return;
+    if (this.charts.types) this.charts.types.destroy();
+    const typeConfig = {
+      meet: { label: '见面', color: '#10b981' },
+      call: { label: '通话', color: '#3b82f6' },
+      chat: { label: '聊天', color: '#8b5cf6' },
+      gift: { label: '送礼', color: '#ec4899' },
+      meal: { label: '聚餐', color: '#f59e0b' },
+      other: { label: '其他', color: '#6b7280' },
+    };
+
+    this.charts.types = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => (typeConfig[d.type] || typeConfig.other).label),
+        datasets: [{
+          data: data.map(d => d.count),
+          backgroundColor: data.map(d => (typeConfig[d.type] || typeConfig.other).color + '80'),
+          borderColor: data.map(d => (typeConfig[d.type] || typeConfig.other).color),
+          borderWidth: 2,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '55%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#9ca3af', font: { size: 10, family: 'Inter' }, padding: 10, boxWidth: 10 }
+          },
+          tooltip: {
+            backgroundColor: '#1a2035',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+          }
+        },
+      }
+    });
+  },
+
+  // Category distribution - semi-donut
   renderCategoryChart(data) {
     const ctx = document.getElementById('chart-categories');
     if (!ctx) return;
     if (this.charts.categories) this.charts.categories.destroy();
     const colors = { friend: '#10b981', family: '#f59e0b', colleague: '#3b82f6', business: '#a855f7', other: '#6b7280' };
     const labels = { friend: '朋友', family: '家人', colleague: '同事', business: '商务', other: '其他' };
+
+    const total = data.reduce((s, d) => s + d.count, 0);
+
     this.charts.categories = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: data.map(d => labels[d.category] || d.category),
         datasets: [{
           data: data.map(d => d.count),
-          backgroundColor: data.map(d => colors[d.category] || '#6b7280'),
-          borderColor: '#0a0e1a',
-          borderWidth: 3,
+          backgroundColor: data.map(d => (colors[d.category] || '#6b7280') + '70'),
+          borderColor: data.map(d => colors[d.category] || '#6b7280'),
+          borderWidth: 2,
+          hoverOffset: 6,
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        rotation: -90,
+        circumference: 180,
+        cutout: '60%',
         plugins: {
-          legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 11, family: 'Inter' }, padding: 16 } }
+          legend: {
+            position: 'bottom',
+            labels: { color: '#9ca3af', font: { size: 10, family: 'Inter' }, padding: 8, boxWidth: 10 }
+          },
+          tooltip: {
+            backgroundColor: '#1a2035',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${ctx.parsed} 人 (${Math.round(ctx.parsed / total * 100)}%)`
+            }
+          }
         },
-        cutout: '65%',
       }
     });
   },
 
-  renderFrequencyChart(data) {
-    const ctx = document.getElementById('chart-frequency');
-    if (!ctx) return;
-    if (this.charts.frequency) this.charts.frequency.destroy();
-    this.charts.frequency = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map(d => d.name),
-        datasets: [{
-          label: '互动次数',
-          data: data.map(d => d.interaction_count),
-          backgroundColor: data.map((_, i) => {
-            const gradient = ['#00d4ff', '#38bdf8', '#0ea5e9', '#0284c7', '#0369a1', '#a855f7', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6'];
-            return gradient[i % gradient.length];
-          }),
-          borderRadius: 6,
-          barThickness: 20,
-        }]
-      },
-      options: {
-        ...this.chartDefaults(),
-        indexAxis: 'y',
-        plugins: { ...this.chartDefaults().plugins, legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
-          y: { ticks: { color: '#d1d5db', font: { size: 11 } }, grid: { display: false } },
-        }
-      }
-    });
-  },
-
+  // Relationship levels - horizontal stacked bar (single bar, segmented)
   renderLevelsChart(data) {
     const ctx = document.getElementById('chart-levels');
     if (!ctx) return;
     if (this.charts.levels) this.charts.levels.destroy();
-    const levelLabels = { 1: '★ 初识', 2: '★★ 一般', 3: '★★★ 熟悉', 4: '★★★★ 亲密', 5: '★★★★★ 至交' };
+
+    const levelLabels = ['★ 初识', '★★ 一般', '★★★ 熟悉', '★★★★ 亲密', '★★★★★ 至交'];
     const levelColors = ['#6b7280', '#f59e0b', '#0ea5e9', '#a855f7', '#ec4899'];
+    const total = data.reduce((s, d) => s + d.count, 0);
+
+    // Build datasets - one per level for stacked bar
+    const datasets = data.map(d => ({
+      label: levelLabels[d.relationship_level - 1] || `等级${d.relationship_level}`,
+      data: [d.count],
+      backgroundColor: levelColors[d.relationship_level - 1] + '70',
+      borderColor: levelColors[d.relationship_level - 1],
+      borderWidth: 1,
+      borderRadius: 3,
+    }));
+
     this.charts.levels = new Chart(ctx, {
-      type: 'polarArea',
+      type: 'bar',
       data: {
-        labels: data.map(d => levelLabels[d.relationship_level] || `等级${d.relationship_level}`),
-        datasets: [{
-          data: data.map(d => d.count),
-          backgroundColor: data.map((d, i) => levelColors[d.relationship_level - 1] + '60'),
-          borderColor: data.map((d, i) => levelColors[d.relationship_level - 1]),
-          borderWidth: 2,
-        }]
+        labels: ['亲密度'],
+        datasets
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        indexAxis: 'y',
         plugins: {
-          legend: { position: 'right', labels: { color: '#9ca3af', font: { size: 10, family: 'Inter' }, padding: 12 } }
+          legend: {
+            position: 'bottom',
+            labels: { color: '#9ca3af', font: { size: 9, family: 'Inter' }, padding: 8, boxWidth: 10 }
+          },
+          tooltip: {
+            backgroundColor: '#1a2035',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.x} 人 (${total ? Math.round(ctx.parsed.x / total * 100) : 0}%)`
+            }
+          }
         },
         scales: {
-          r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          x: {
+            stacked: true,
+            ticks: { color: '#6b7280', font: { size: 10 }, stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.03)' }
+          },
+          y: {
+            stacked: true,
+            display: false,
+          }
         }
       }
     });

@@ -54,9 +54,18 @@ const API = {
   getRelationshipLevels() { return this.request('GET', '/stats/relationship-levels'); },
   getMonthlyInteractions() { return this.request('GET', '/stats/monthly-interactions'); },
   getCategoryDistribution() { return this.request('GET', '/stats/category-distribution'); },
+  getInteractionTypes() { return this.request('GET', '/stats/interaction-types'); },
+  getMoodTrend() { return this.request('GET', '/stats/mood-trend'); },
+  getCityDistribution() { return this.request('GET', '/stats/city-distribution'); },
+  getNeglected() { return this.request('GET', '/stats/neglected'); },
 
   // Relationships (graph)
   getRelationships() { return this.request('GET', '/relationships'); },
   createRelationship(data) { return this.request('POST', '/relationships', data); },
   deleteRelationship(id) { return this.request('DELETE', `/relationships/${id}`); },
+
+  // Lunar calendar conversion
+  convertDate(date, from) {
+    return this.request('GET', `/lunar/convert?date=${date}&from=${from}`);
+  },
 };

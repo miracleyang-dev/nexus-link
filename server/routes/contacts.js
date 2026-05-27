@@ -80,7 +80,7 @@ router.post('/', (req, res) => {
   try {
     const fields = [
       'name', 'avatar_url', 'phone', 'email', 'company', 'position',
-      'birthday', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'birthday', 'birthday_type', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
       'relationship_level', 'category'
     ];
@@ -110,7 +110,7 @@ router.put('/:id', (req, res) => {
 
     const fields = [
       'name', 'avatar_url', 'phone', 'email', 'company', 'position',
-      'birthday', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'birthday', 'birthday_type', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
       'relationship_level', 'category'
     ];

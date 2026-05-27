@@ -25,6 +25,7 @@ db.exec(`
     company TEXT,
     position TEXT,
     birthday TEXT,
+    birthday_type TEXT DEFAULT 'solar' CHECK(birthday_type IN ('solar','lunar')),
     zodiac TEXT,
     mbti TEXT,
     blood_type TEXT,
@@ -98,14 +99,14 @@ function seedDatabase() {
 
   // Seed contacts
   const insertContact = db.prepare(`
-    INSERT INTO contacts (name, avatar_url, phone, email, company, position, birthday, zodiac, mbti, blood_type, hometown, current_city, personality_traits, strengths, preferences, notes, relationship_level, category)
-    VALUES (@name, @avatar_url, @phone, @email, @company, @position, @birthday, @zodiac, @mbti, @blood_type, @hometown, @current_city, @personality_traits, @strengths, @preferences, @notes, @relationship_level, @category)
+    INSERT INTO contacts (name, avatar_url, phone, email, company, position, birthday, birthday_type, zodiac, mbti, blood_type, hometown, current_city, personality_traits, strengths, preferences, notes, relationship_level, category)
+    VALUES (@name, @avatar_url, @phone, @email, @company, @position, @birthday, @birthday_type, @zodiac, @mbti, @blood_type, @hometown, @current_city, @personality_traits, @strengths, @preferences, @notes, @relationship_level, @category)
   `);
 
   const contacts = [
     {
       name: '张伟', avatar_url: null, phone: '13800138001', email: 'zhangwei@example.com',
-      company: '腾讯科技', position: '高级产品经理', birthday: '1990-03-15', zodiac: '双鱼座',
+      company: '腾讯科技', position: '高级产品经理', birthday: '1990-03-15', birthday_type: 'solar', zodiac: '双鱼座',
       mbti: 'ENTJ', blood_type: 'A', hometown: '北京', current_city: '深圳',
       personality_traits: '果断,有领导力,目标导向', strengths: '战略思维强，擅长团队管理',
       preferences: '篮球,科技产品,咖啡,阅读商业书籍', notes: '大学室友，关系非常好，每年都会见面',
@@ -113,7 +114,7 @@ function seedDatabase() {
     },
     {
       name: '李婷', avatar_url: null, phone: '13900139002', email: 'liting@example.com',
-      company: '阿里巴巴', position: '数据分析师', birthday: '1992-07-22', zodiac: '巨蟹座',
+      company: '阿里巴巴', position: '数据分析师', birthday: '1992-07-22', birthday_type: 'solar', zodiac: '巨蟹座',
       mbti: 'INFJ', blood_type: 'O', hometown: '杭州', current_city: '杭州',
       personality_traits: '细心,有洞察力,善良', strengths: '数据分析能力强，善于发现规律',
       preferences: '瑜伽,烘焙,看电影,旅行', notes: '前同事，转行做数据后发展很好',
@@ -121,7 +122,7 @@ function seedDatabase() {
     },
     {
       name: '王建国', avatar_url: null, phone: '13700137003', email: 'wangjianguo@example.com',
-      company: '建国律师事务所', position: '合伙人', birthday: '1985-11-08', zodiac: '天蝎座',
+      company: '建国律师事务所', position: '合伙人', birthday: '1985-11-08', birthday_type: 'solar', zodiac: '天蝎座',
       mbti: 'ISTJ', blood_type: 'B', hometown: '上海', current_city: '上海',
       personality_traits: '严谨,可靠,注重细节', strengths: '法律专业能力强，人脉广',
       preferences: '高尔夫,红酒,古典音乐,收藏', notes: '帮忙处理过合同问题，非常专业',
@@ -129,7 +130,7 @@ function seedDatabase() {
     },
     {
       name: '陈美玲', avatar_url: null, phone: '13600136004', email: 'chenmeiling@example.com',
-      company: null, position: null, birthday: '1965-05-20', zodiac: '金牛座',
+      company: null, position: null, birthday: '1965-05-20', birthday_type: 'solar', zodiac: '金牛座',
       mbti: 'ESFJ', blood_type: 'A', hometown: '成都', current_city: '成都',
       personality_traits: '温柔,体贴,传统', strengths: '厨艺精湛，家庭管理能力强',
       preferences: '广场舞,种花,做菜,看剧', notes: '妈妈的好朋友，从小看着我长大',
@@ -137,7 +138,7 @@ function seedDatabase() {
     },
     {
       name: '刘洋', avatar_url: null, phone: '13500135005', email: 'liuyang@example.com',
-      company: '字节跳动', position: '前端工程师', birthday: '1995-01-30', zodiac: '水瓶座',
+      company: '字节跳动', position: '前端工程师', birthday: '1995-01-30', birthday_type: 'solar', zodiac: '水瓶座',
       mbti: 'INTP', blood_type: 'AB', hometown: '武汉', current_city: '北京',
       personality_traits: '聪明,内向,有创造力', strengths: '技术能力强，学习速度快',
       preferences: '编程,游戏,动漫,摄影', notes: '技术社区认识的朋友，经常交流技术',
@@ -145,7 +146,7 @@ function seedDatabase() {
     },
     {
       name: '赵雪', avatar_url: null, phone: '13400134006', email: 'zhaoxue@example.com',
-      company: '小红书', position: '内容运营总监', birthday: '1993-09-12', zodiac: '处女座',
+      company: '小红书', position: '内容运营总监', birthday: '1993-09-12', birthday_type: 'solar', zodiac: '处女座',
       mbti: 'ENFP', blood_type: 'O', hometown: '南京', current_city: '上海',
       personality_traits: '活泼,有创意,社交达人', strengths: '内容创作能力强，人脉资源丰富',
       preferences: '美食探店,时尚,健身,写作', notes: '行业活动认识，合作过几个项目',
@@ -153,7 +154,7 @@ function seedDatabase() {
     },
     {
       name: '孙浩然', avatar_url: null, phone: '13300133007', email: 'sunhaoran@example.com',
-      company: '华为技术', position: '研发总监', birthday: '1988-04-05', zodiac: '白羊座',
+      company: '华为技术', position: '研发总监', birthday: '1988-04-05', birthday_type: 'solar', zodiac: '白羊座',
       mbti: 'ESTJ', blood_type: 'A', hometown: '西安', current_city: '深圳',
       personality_traits: '务实,坚韧,有责任心', strengths: '项目管理经验丰富，技术视野广',
       preferences: '登山,钓鱼,象棋,历史', notes: '张伟介绍认识的，为人很靠谱',
@@ -161,7 +162,7 @@ function seedDatabase() {
     },
     {
       name: '周小燕', avatar_url: null, phone: '13200132008', email: 'zhouxiaoyan@example.com',
-      company: '新东方教育', position: '英语教师', birthday: '1991-12-25', zodiac: '摩羯座',
+      company: '新东方教育', position: '英语教师', birthday: '1991-12-25', birthday_type: 'solar', zodiac: '摩羯座',
       mbti: 'ISFJ', blood_type: 'B', hometown: '长沙', current_city: '广州',
       personality_traits: '耐心,温和,有爱心', strengths: '英语口语流利，教学经验丰富',
       preferences: '读书,旅行,手工,茶道', notes: '高中同学，一直保持联系',
@@ -169,7 +170,7 @@ function seedDatabase() {
     },
     {
       name: '黄志强', avatar_url: null, phone: '13100131009', email: 'huangzhiqiang@example.com',
-      company: '美团', position: '区域经理', birthday: '1989-08-18', zodiac: '狮子座',
+      company: '美团', position: '区域经理', birthday: '1989-08-18', birthday_type: 'solar', zodiac: '狮子座',
       mbti: 'ESTP', blood_type: 'O', hometown: '重庆', current_city: '重庆',
       personality_traits: '豪爽,大方,有执行力', strengths: '沟通能力强，市场敏感度高',
       preferences: '火锅,麻将,看球赛,自驾游', notes: '大学社团认识，重庆出差必联系的人',
@@ -177,7 +178,7 @@ function seedDatabase() {
     },
     {
       name: '林雨晨', avatar_url: null, phone: '13000130010', email: 'linyuchen@example.com',
-      company: '自由职业', position: '独立设计师', birthday: '1994-06-01', zodiac: '双子座',
+      company: '自由职业', position: '独立设计师', birthday: '1994-06-01', birthday_type: 'solar', zodiac: '双子座',
       mbti: 'INFP', blood_type: 'AB', hometown: '厦门', current_city: '厦门',
       personality_traits: '敏感,浪漫,理想主义', strengths: 'UI设计能力出众，审美独特',
       preferences: '绘画,咖啡,独立音乐,猫', notes: '合作过APP设计项目，作品质量很高',
