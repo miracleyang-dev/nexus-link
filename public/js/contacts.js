@@ -126,6 +126,7 @@ const Contacts = {
     const c = await API.getContact(id);
     const interactions = c.recent_interactions || [];
     const tags = c.tags || [];
+    c.strengths_list = c.strengths || [];
 
     Utils.showModal(`
       <div class="p-6">
@@ -172,7 +173,38 @@ const Contacts = {
           ${this.detailField('性格特征', c.personality_traits, '✦')}
         </div>
 
-        ${c.strengths ? `<div class="detail-section"><div class="detail-label">💪 个人长处</div><div class="detail-value">${c.strengths}</div></div>` : ''}
+        ${c.personality_traits ? `<div class="detail-section"><div class="detail-label">✦ 性格特征</div><div class="detail-value">${c.personality_traits}</div></div>` : ''}
+
+        <!-- Structured Strengths -->
+        <div class="detail-section">
+          <div class="flex items-center justify-between mb-3">
+            <div class="detail-label">💪 个人长处</div>
+            ${(c.strengths_list || []).length < 2 ? `<button onclick="Contacts.showAddStrengthModal(${c.id},'${c.name}')" class="text-xs text-neon-blue hover:underline">+ 添加</button>` : ''}
+          </div>
+          ${(c.strengths_list || []).length ? `
+            <div class="space-y-2">
+              ${c.strengths_list.map(s => {
+                const pcfg = Utils.progressConfig[s.progress] || Utils.progressConfig.learning;
+                return `<div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 group">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="text-sm text-gray-200">${s.content}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-0.5">${Utils.ratingStars(s.rating, 11)}</div>
+                      ${Utils.progressBadge(s.progress)}
+                    </div>
+                  </div>
+                  <div class="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="Contacts.showEditStrengthModal(${c.id},'${c.name}',${s.id},'${s.content}',${s.rating},'${s.progress}')" class="text-gray-500 hover:text-neon-blue text-[11px] px-1.5 py-1 rounded">编辑</button>
+                    <button onclick="Contacts.deleteStrength(${c.id},${s.id})" class="text-gray-500 hover:text-red-400 text-[11px] px-1.5 py-1 rounded">删除</button>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          ` : '<p class="text-sm text-gray-500">暂无记录，点击添加</p>'}
+        </div>
+
         ${c.preferences ? `<div class="detail-section"><div class="detail-label">❤️ 兴趣偏好</div><div class="detail-value">${c.preferences}</div></div>` : ''}
         ${c.notes ? `<div class="detail-section"><div class="detail-label">📝 备注</div><div class="detail-value">${c.notes}</div></div>` : ''}
 
@@ -279,9 +311,9 @@ const Contacts = {
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">性格与备注 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 space-y-4">
               <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${c.personality_traits || ''}" placeholder="如：果断,有领导力,目标导向"></div>
-              <div><label class="detail-label block mb-1">个人长处</label><textarea name="strengths" class="form-input" rows="2" placeholder="擅长的能力...">${c.strengths || ''}</textarea></div>
               <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${c.preferences || ''}</textarea></div>
               <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${c.notes || ''}</textarea></div>
+              <p class="text-[10px] text-gray-600">💡 个人长处请在联系人详情中单独管理（逐条添加，支持评级与学习进度）</p>
             </div>
           </details>
 
@@ -354,6 +386,7 @@ const Contacts = {
     const tagIds = Array.from(tagCheckboxes).map(cb => parseInt(cb.value));
 
     try {
+      const isUpdate = !!id;
       let contact;
       if (id) {
         contact = await API.updateContact(id, data);
@@ -361,11 +394,11 @@ const Contacts = {
         contact = await API.createContact(data);
         id = contact.id;
       }
-      if (tagIds.length >= 0) {
+      if (tagIds.length > 0) {
         await API.assignTags(id, tagIds);
       }
       Utils.closeModal();
-      Utils.toast(id ? '联系人已更新' : '联系人已创建');
+      Utils.toast(isUpdate ? '联系人已更新' : '联系人已创建');
       await this.loadContacts();
       await this.loadTags();
       this.render();
@@ -434,6 +467,111 @@ const Contacts = {
       await API.createInteraction(data);
       Utils.closeModal();
       Utils.toast('互动记录已添加');
+    } catch (err) {
+      Utils.toast(err.message, 'error');
+    }
+  },
+
+  // ── Strengths CRUD ──
+
+  showAddStrengthModal(contactId, contactName) {
+    Utils.closeModal();
+    setTimeout(() => {
+      Utils.showModal(`
+        <div class="p-6">
+          <h2 class="text-lg font-bold text-white mb-6">添加优点 - ${contactName}</h2>
+          <form onsubmit="Contacts.saveStrength(event, ${contactId})" class="space-y-4">
+            <div><label class="detail-label block mb-1">优点描述 *</label><input name="content" class="form-input" required placeholder="一项具体优点，如：沟通能力强" maxlength="30"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="detail-label block mb-1">评级</label>
+                <select name="rating" class="form-input">
+                  ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===4?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)} ${i}分</option>`).join('')}
+                </select>
+              </div>
+              <div><label class="detail-label block mb-1">学习进度</label>
+                <select name="progress" class="form-input">
+                  ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k==='learning'?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <button type="button" onclick="Utils.closeModal()" class="btn-ghost">取消</button>
+              <button type="submit" class="btn-primary">保存</button>
+            </div>
+          </form>
+        </div>
+      `);
+    }, 200);
+  },
+
+  showEditStrengthModal(contactId, contactName, strengthId, content, rating, progress) {
+    Utils.closeModal();
+    setTimeout(() => {
+      Utils.showModal(`
+        <div class="p-6">
+          <h2 class="text-lg font-bold text-white mb-6">编辑优点 - ${contactName}</h2>
+          <form onsubmit="Contacts.updateStrength(event, ${contactId}, ${strengthId})" class="space-y-4">
+            <div><label class="detail-label block mb-1">优点描述 *</label><input name="content" class="form-input" required value="${content}" maxlength="30"></div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="detail-label block mb-1">评级</label>
+                <select name="rating" class="form-input">
+                  ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)} ${i}分</option>`).join('')}
+                </select>
+              </div>
+              <div><label class="detail-label block mb-1">学习进度</label>
+                <select name="progress" class="form-input">
+                  ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <button type="button" onclick="Utils.closeModal()" class="btn-ghost">取消</button>
+              <button type="submit" class="btn-primary">保存修改</button>
+            </div>
+          </form>
+        </div>
+      `);
+    }, 200);
+  },
+
+  async saveStrength(e, contactId) {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const data = {};
+    for (const [k, v] of form.entries()) data[k] = v;
+    data.rating = parseInt(data.rating) || 3;
+    try {
+      await API.createStrength(contactId, data);
+      Utils.closeModal();
+      Utils.toast('优点已添加');
+      setTimeout(() => this.showDetail(contactId), 200);
+    } catch (err) {
+      Utils.toast(err.message, 'error');
+    }
+  },
+
+  async updateStrength(e, contactId, strengthId) {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const data = {};
+    for (const [k, v] of form.entries()) data[k] = v;
+    data.rating = parseInt(data.rating) || 3;
+    try {
+      await API.updateStrength(strengthId, data);
+      Utils.closeModal();
+      Utils.toast('优点已更新');
+      setTimeout(() => this.showDetail(contactId), 200);
+    } catch (err) {
+      Utils.toast(err.message, 'error');
+    }
+  },
+
+  async deleteStrength(contactId, strengthId) {
+    if (!confirm('确定删除此优点？')) return;
+    try {
+      await API.deleteStrength(strengthId);
+      Utils.toast('优点已删除');
+      this.showDetail(contactId);
     } catch (err) {
       Utils.toast(err.message, 'error');
     }

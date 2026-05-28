@@ -25,6 +25,7 @@ function switchView(view) {
     case 'graph': Graph.init(); break;
     case 'reminders': Reminders.init(); break;
     case 'dashboard': Dashboard.init(); break;
+    case 'settings': Settings.init(); break;
   }
 }
 

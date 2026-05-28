@@ -64,8 +64,19 @@ const API = {
   createRelationship(data) { return this.request('POST', '/relationships', data); },
   deleteRelationship(id) { return this.request('DELETE', `/relationships/${id}`); },
 
+  // Strengths
+  getStrengths(contactId) { return this.request('GET', `/contacts/${contactId}/strengths`); },
+  createStrength(contactId, data) { return this.request('POST', `/contacts/${contactId}/strengths`, data); },
+  updateStrength(id, data) { return this.request('PUT', `/strengths/${id}`, data); },
+  deleteStrength(id) { return this.request('DELETE', `/strengths/${id}`); },
+
   // Lunar calendar conversion
   convertDate(date, from) {
     return this.request('GET', `/lunar/convert?date=${date}&from=${from}`);
   },
+
+  // Settings
+  getSettings() { return this.request('GET', '/settings'); },
+  setRecordStartDate(date) { return this.request('PUT', '/settings/record-start-date', { date }); },
+  clearRecordStartDate() { return this.request('DELETE', '/settings/record-start-date'); },
 };

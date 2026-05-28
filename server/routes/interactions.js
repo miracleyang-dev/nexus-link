@@ -63,6 +63,12 @@ router.post('/', (req, res) => {
     const contact = db.prepare('SELECT id FROM contacts WHERE id = ?').get(contact_id);
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
+    // Check record start date
+    const startDateRow = db.prepare("SELECT value FROM settings WHERE key = 'record_start_date'").get();
+    if (startDateRow && date < startDateRow.value) {
+      return res.status(400).json({ error: `日期不能早于记录起始日期 (${startDateRow.value})` });
+    }
+
     const info = db.prepare(`
       INSERT INTO interactions (contact_id, type, title, content, location, date, mood)
       VALUES (?, ?, ?, ?, ?, ?, ?)

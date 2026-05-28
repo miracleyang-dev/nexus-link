@@ -69,7 +69,11 @@ router.get('/:id', (req, res) => {
       SELECT * FROM interactions WHERE contact_id = ? ORDER BY date DESC LIMIT 10
     `).all(req.params.id);
 
-    res.json({ ...contact, tags, recent_interactions: interactions });
+    const strengthsList = db.prepare(`
+      SELECT * FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC, created_at ASC
+    `).all(req.params.id);
+
+    res.json({ ...contact, tags, recent_interactions: interactions, strengths: strengthsList });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -22,6 +22,8 @@ const interactionsRouter = require('./routes/interactions');
 const remindersRouter = require('./routes/reminders');
 const statsRouter = require('./routes/stats');
 const relationshipsRouter = require('./routes/relationships');
+const strengthsRouter = require('./routes/strengths');
+const settingsRouter = require('./routes/settings');
 const { Solar, Lunar } = require('lunar-javascript');
 
 // Lunar-solar date conversion endpoint
@@ -70,6 +72,8 @@ app.use('/api/interactions', interactionsRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/relationships', relationshipsRouter);
+app.use('/api', strengthsRouter);
+app.use('/api/settings', settingsRouter);
 
 // Fallback to index.html for SPA routing
 app.get('*', (req, res) => {

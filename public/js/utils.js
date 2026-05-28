@@ -22,6 +22,29 @@ const Utils = {
   // Mood config
   moods: { 1: '😞', 2: '😐', 3: '🙂', 4: '😊', 5: '🤩' },
 
+  // Strength progress config
+  progressConfig: {
+    not_started: { label: '未开始', color: '#6b7280', icon: '○', bg: 'rgba(107,114,128,0.1)' },
+    learning:    { label: '学习中', color: '#3b82f6', icon: '◔', bg: 'rgba(59,130,246,0.1)' },
+    practicing:  { label: '实践中', color: '#f59e0b', icon: '◑', bg: 'rgba(245,158,11,0.1)' },
+    mastered:    { label: '已掌握', color: '#10b981', icon: '●', bg: 'rgba(16,185,129,0.1)' },
+  },
+
+  // Render rating stars
+  ratingStars(rating, size = 12) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<span style="color:${i <= rating ? '#f59e0b' : 'rgba(255,255,255,0.1)'};font-size:${size}px">★</span>`;
+    }
+    return html;
+  },
+
+  // Render progress badge
+  progressBadge(progress) {
+    const cfg = this.progressConfig[progress] || this.progressConfig.learning;
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style="background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}25">${cfg.icon} ${cfg.label}</span>`;
+  },
+
   // Generate avatar color from name
   avatarColor(name) {
     const colors = [

@@ -109,6 +109,12 @@ router.post('/', (req, res) => {
     if (!title || !remind_date) {
       return res.status(400).json({ error: 'title and remind_date are required' });
     }
+
+    // Check record start date
+    const startDateRow = db.prepare("SELECT value FROM settings WHERE key = 'record_start_date'").get();
+    if (startDateRow && remind_date < startDateRow.value) {
+      return res.status(400).json({ error: `日期不能早于记录起始日期 (${startDateRow.value})` });
+    }
     const info = db.prepare(`
       INSERT INTO reminders (contact_id, title, description, remind_date, type)
       VALUES (?, ?, ?, ?, ?)

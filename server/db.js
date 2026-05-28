@@ -81,6 +81,16 @@ db.exec(`
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
   );
 
+  CREATE TABLE IF NOT EXISTS contact_strengths (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contact_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    rating INTEGER DEFAULT 3 CHECK(rating BETWEEN 1 AND 5),
+    progress TEXT DEFAULT 'learning' CHECK(progress IN ('not_started','learning','practicing','mastered')),
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS relationships (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contact_id_1 INTEGER NOT NULL,
@@ -90,6 +100,12 @@ db.exec(`
     notes TEXT,
     FOREIGN KEY (contact_id_1) REFERENCES contacts(id) ON DELETE CASCADE,
     FOREIGN KEY (contact_id_2) REFERENCES contacts(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
   );
 `);
 
@@ -250,6 +266,37 @@ function seedDatabase() {
   ];
   for (const i of interactions) {
     insertInteraction.run(i);
+  }
+
+  // Seed contact strengths (structured from old text field)
+  const insertStrength = db.prepare(`
+    INSERT INTO contact_strengths (contact_id, content, rating, progress)
+    VALUES (@contact_id, @content, @rating, @progress)
+  `);
+  const strengths = [
+    { contact_id: 1, content: '战略思维强', rating: 5, progress: 'mastered' },
+    { contact_id: 1, content: '擅长团队管理', rating: 4, progress: 'practicing' },
+    { contact_id: 2, content: '数据分析能力强', rating: 5, progress: 'mastered' },
+    { contact_id: 2, content: '善于发现规律', rating: 4, progress: 'mastered' },
+    { contact_id: 3, content: '法律专业能力强', rating: 5, progress: 'mastered' },
+    { contact_id: 3, content: '人脉广', rating: 4, progress: 'practicing' },
+    { contact_id: 4, content: '厨艺精湛', rating: 5, progress: 'mastered' },
+    { contact_id: 4, content: '家庭管理能力强', rating: 4, progress: 'mastered' },
+    { contact_id: 5, content: '技术能力强', rating: 5, progress: 'practicing' },
+    { contact_id: 5, content: '学习速度快', rating: 4, progress: 'learning' },
+    { contact_id: 6, content: '内容创作能力强', rating: 5, progress: 'mastered' },
+    { contact_id: 6, content: '人脉资源丰富', rating: 4, progress: 'practicing' },
+    { contact_id: 7, content: '项目管理经验丰富', rating: 4, progress: 'mastered' },
+    { contact_id: 7, content: '技术视野广', rating: 3, progress: 'learning' },
+    { contact_id: 8, content: '英语口语流利', rating: 5, progress: 'mastered' },
+    { contact_id: 8, content: '教学经验丰富', rating: 4, progress: 'practicing' },
+    { contact_id: 9, content: '沟通能力强', rating: 5, progress: 'mastered' },
+    { contact_id: 9, content: '市场敏感度高', rating: 4, progress: 'practicing' },
+    { contact_id: 10, content: 'UI设计能力出众', rating: 5, progress: 'mastered' },
+    { contact_id: 10, content: '审美独特', rating: 4, progress: 'mastered' },
+  ];
+  for (const s of strengths) {
+    insertStrength.run(s);
   }
 
   // Seed reminders
