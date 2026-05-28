@@ -161,8 +161,10 @@ const Utils = {
     return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style="background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}25">${cfg.icon} ${cfg.label}</span>`;
   },
 
-  // Generate avatar color from name
+  // Generate avatar color from name (memoized)
+  _avatarColorCache: new Map(),
   avatarColor(name) {
+    if (this._avatarColorCache.has(name)) return this._avatarColorCache.get(name);
     const colors = [
       ['#0ea5e9', '#0369a1'], ['#a855f7', '#7c3aed'], ['#ec4899', '#db2777'],
       ['#10b981', '#059669'], ['#f59e0b', '#d97706'], ['#ef4444', '#dc2626'],
@@ -170,7 +172,9 @@ const Utils = {
     ];
     let hash = 0;
     for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
+    const color = colors[Math.abs(hash) % colors.length];
+    this._avatarColorCache.set(name, color);
+    return color;
   },
 
   // Create avatar HTML
@@ -250,7 +254,10 @@ const Utils = {
     document.getElementById('modal-content').innerHTML = html;
     overlay.classList.remove('hidden');
     overlay.classList.add('show');
-    overlay.onclick = (e) => { if (e.target === overlay) this.closeModal(); };
+    // Use a stored handler to avoid accumulating listeners
+    if (this._modalHandler) overlay.removeEventListener('click', this._modalHandler);
+    this._modalHandler = (e) => { if (e.target === overlay) this.closeModal(); };
+    overlay.addEventListener('click', this._modalHandler);
   },
 
   // Close modal
@@ -282,9 +289,24 @@ const Utils = {
     return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
   },
 
+  // Lazy-load lunar calendar library
+  _lunarLoaded: false,
+  async _ensureLunar() {
+    if (this._lunarLoaded) return;
+    if (typeof LunarJS !== 'undefined') { this._lunarLoaded = true; return; }
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'js/lunar.min.js';
+      s.onload = () => { this._lunarLoaded = true; resolve(); };
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  },
+
   // Lunar calendar conversion (client-side using LunarJS)
   solarToLunar(dateStr) {
     try {
+      if (typeof LunarJS === 'undefined') return null;
       const [y, m, d] = dateStr.split('-').map(Number);
       const solar = LunarJS.Solar.fromYmd(y, m, d);
       const lunar = solar.getLunar();
@@ -297,6 +319,7 @@ const Utils = {
 
   lunarToSolar(dateStr) {
     try {
+      if (typeof LunarJS === 'undefined') return null;
       const [y, m, d] = dateStr.split('-').map(Number);
       const lunar = LunarJS.Lunar.fromYmd(y, m, d);
       const solar = lunar.getSolar();
@@ -314,6 +337,7 @@ const Utils = {
     const thisYear = new Date().getFullYear();
     if (birthdayType === 'lunar') {
       try {
+        if (typeof LunarJS === 'undefined') return null;
         const lunar = LunarJS.Lunar.fromYmd(thisYear, m, d);
         const solar = lunar.getSolar();
         return `${solar.getYear()}-${String(solar.getMonth()).padStart(2,'0')}-${String(solar.getDay()).padStart(2,'0')}`;

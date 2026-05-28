@@ -117,6 +117,17 @@ db.exec(`
     value TEXT NOT NULL,
     updated_at TEXT DEFAULT (datetime('now'))
   );
+
+  -- Performance indexes
+  CREATE INDEX IF NOT EXISTS idx_interactions_date ON interactions(date);
+  CREATE INDEX IF NOT EXISTS idx_contacts_category ON contacts(category);
+  CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at);
+  CREATE INDEX IF NOT EXISTS idx_contact_tags_contact ON contact_tags(contact_id);
+  CREATE INDEX IF NOT EXISTS idx_contact_tags_tag ON contact_tags(tag_id);
+  CREATE INDEX IF NOT EXISTS idx_ic_contact ON interaction_contacts(contact_id);
+  CREATE INDEX IF NOT EXISTS idx_ic_interaction ON interaction_contacts(interaction_id);
+  CREATE INDEX IF NOT EXISTS idx_reminders_date ON reminders(remind_date);
+  CREATE INDEX IF NOT EXISTS idx_online_pings_contact ON online_pings(contact_id);
 `);
 
 function seedDatabase() {

@@ -66,19 +66,23 @@ const Timeline = {
     const el = document.getElementById('timeline-content');
     let filtered = this.interactions;
     if (this.filterContactId) {
-      filtered = filtered.filter(i => {
-        const names = (i.contact_names || '').split(',');
-        const contact = this.contacts.find(c => c.id == this.filterContactId);
-        return contact && names.includes(contact.name);
-      });
+      const contact = this.contacts.find(c => c.id == this.filterContactId);
+      if (contact) {
+        const targetName = contact.name;
+        filtered = filtered.filter(i => (i.contact_names || '').split(',').includes(targetName));
+      } else {
+        filtered = [];
+      }
     }
 
+    // Group by month in a single pass
     const grouped = {};
-    filtered.forEach(i => {
-      const month = i.date.slice(0, 7);
+    for (let i = 0; i < filtered.length; i++) {
+      const item = filtered[i];
+      const month = item.date.slice(0, 7);
       if (!grouped[month]) grouped[month] = [];
-      grouped[month].push(i);
-    });
+      grouped[month].push(item);
+    }
     const months = Object.keys(grouped).sort().reverse();
 
     el.innerHTML = `

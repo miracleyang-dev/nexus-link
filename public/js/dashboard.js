@@ -151,12 +151,12 @@ const Dashboard = {
     `;
 
     // Render charts after DOM update
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       this.renderTrendChart(monthly, moodTrend);
       this.renderTypesChart(interactionTypes);
       this.renderCategoryChart(categories);
       this.renderLevelsChart(levels);
-    }, 80);
+    });
   },
 
   statCard(label, value, icon, color, subtitle) {

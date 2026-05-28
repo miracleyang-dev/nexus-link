@@ -76,6 +76,22 @@ const Contacts = {
     `;
   },
 
+  // Partial re-render: only update the contact grid (avoids losing search focus)
+  renderGrid() {
+    const grid = document.getElementById('contacts-grid');
+    if (!grid) return this.render();
+    grid.innerHTML = this.contacts.length
+      ? this.contacts.map(c => this.cardHTML(c)).join('')
+      : `
+        <div class="col-span-full empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <p class="text-sm">暂无联系人</p>
+        </div>
+      `;
+    const countEl = document.querySelector('#view-contacts .text-sm.text-gray-500');
+    if (countEl) countEl.textContent = '共 ' + this.contacts.length + ' 位联系人';
+  },
+
   cardHTML(c) {
     const tags = c.tags || [];
     return `
@@ -107,13 +123,17 @@ const Contacts = {
   onSearch: Utils.debounce(async function(val) {
     Contacts.currentFilter.search = val;
     await Contacts.loadContacts();
-    Contacts.render();
+    Contacts.renderGrid();
   }, 300),
 
   async filterCategory(cat) {
     this.currentFilter.category = cat;
     await this.loadContacts();
-    this.render();
+    this.renderGrid();
+    document.querySelectorAll('.filter-scroll .filter-chip').forEach(btn => {
+      const btnCat = btn.getAttribute('onclick')?.match(/filterCategory\('(.*)'\)/)?.[1] || '';
+      btn.classList.toggle('active', btnCat === cat);
+    });
   },
 
   async filterTag(tag) {
@@ -123,6 +143,7 @@ const Contacts = {
   },
 
   async showDetail(id) {
+    await Utils._ensureLunar();
     const c = await API.getContact(id);
     const interactions = c.recent_interactions || [];
     const tags = c.tags || [];
@@ -248,11 +269,13 @@ const Contacts = {
     return `<div><div class="detail-label">${icon} ${label}</div><div class="detail-value">${value}</div></div>`;
   },
 
-  showAddModal() {
+  async showAddModal() {
+    await Utils._ensureLunar();
     this._showFormModal('添加联系人', {});
   },
 
   async showEditModal(id) {
+    await Utils._ensureLunar();
     Utils.closeModal();
     const c = await API.getContact(id);
     // Ensure strengths are loaded for the edit form

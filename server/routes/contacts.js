@@ -92,15 +92,20 @@ router.get('/:id', (req, res) => {
       ORDER BY i.date DESC LIMIT 10
     `).all(req.params.id);
 
-    // For each interaction, get all associated contact names
-    const enrichedInteractions = interactions.map(i => {
-      const contactNames = db.prepare(`
-        SELECT c.name FROM contacts c
-        JOIN interaction_contacts ic ON c.id = ic.contact_id
-        WHERE ic.interaction_id = ?
-      `).all(i.id).map(c => c.name);
-      return { ...i, contact_names: contactNames };
-    });
+    // Batch-fetch all associated contact names in a single query
+    let enrichedInteractions = interactions;
+    if (interactions.length > 0) {
+      const placeholders = interactions.map(() => '?').join(',');
+      const nameRows = db.prepare(`
+        SELECT ic.interaction_id, GROUP_CONCAT(c.name) as names
+        FROM interaction_contacts ic
+        JOIN contacts c ON c.id = ic.contact_id
+        WHERE ic.interaction_id IN (${placeholders})
+        GROUP BY ic.interaction_id
+      `).all(...interactions.map(i => i.id));
+      const nameMap = new Map(nameRows.map(r => [r.interaction_id, r.names ? r.names.split(',') : []]));
+      enrichedInteractions = interactions.map(i => ({ ...i, contact_names: nameMap.get(i.id) || [] }));
+    }
 
     const strengthsList = db.prepare(`
       SELECT * FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC, created_at ASC
