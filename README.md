@@ -124,7 +124,7 @@ settings            — 系统设置
   <img src="public/icon.png" alt="NexusLink Icon" width="200" style="border-radius: 24px;">
 </p>
 
-**Design Concept**: Three luminous节点（nodes）由发光线条连接，构成三角形星座图案，象征人与人之间的社交连接网络。
+**设计理念**: 三个发光节点由霓虹线条连接，构成三角形星座图案，象征人与人之间的社交连接网络。
 
 - **配色**: 从霓虹蓝 `#00d4ff` 到紫色 `#a855f7` 的渐变，与应用内的赛博朋克主题一致
 - **背景**: 深色 `#0a0e1a`，保持与 UI 的视觉统一
