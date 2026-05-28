@@ -13,7 +13,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Initialize database (triggers table creation and seeding)
-require('./db');
+try {
+  require('./db');
+} catch (err) {
+  console.error('Failed to initialize database:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+}
 
 // Routes
 const contactsRouter = require('./routes/contacts');
