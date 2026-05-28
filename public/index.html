@@ -38,7 +38,7 @@
     <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl"></div>
     <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-neon-pink/3 rounded-full blur-3xl"></div>
   </div>
-
+  
   <div class="relative z-10 flex h-screen">
     <!-- Mobile Header -->
     <header id="mobile-header" class="fixed top-0 left-0 right-0 z-40 bg-surface-2/90 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center justify-between md:hidden">
@@ -150,13 +150,49 @@
   <!-- Lunar calendar support -->
   <script src="js/lunar.min.js"></script>
   <!-- JS Modules -->
-  <script src="js/api.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/contacts.js"></script>
   <script src="js/timeline.js"></script>
   <script src="js/reminders.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/settings.js"></script>
-  <script src="js/app.js"></script>
+  <script>
+    // App Entry Point
+    let currentView = 'contacts';
+
+    function switchView(view) {
+      currentView = view;
+      // Hide all views
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+      // Show target
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+
+      // Update desktop sidebar nav
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const desktopBtn = document.querySelector(`[data-nav="${view}"]`);
+      if (desktopBtn) desktopBtn.classList.add('active');
+
+      // Update mobile bottom nav
+      document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+      const mobileBtn = document.querySelector(`[data-nav-m="${view}"]`);
+      if (mobileBtn) mobileBtn.classList.add('active');
+
+      // Init view
+      switch (view) {
+        case 'contacts': Contacts.init(); break;
+        case 'timeline': Timeline.init(); break;
+        case 'reminders': Reminders.init(); break;
+        case 'dashboard': Dashboard.init(); break;
+        case 'settings': Settings.init(); break;
+      }
+    }
+
+    // Boot
+    document.addEventListener('DOMContentLoaded', () => {
+      switchView('contacts');
+      // Load reminder count for badge
+      Reminders.init().catch(() => {});
+    });
+  </script>
 </body>
 </html>

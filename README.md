@@ -73,34 +73,29 @@ settings            — 系统设置
 
 ```
 ├── public/                  # Frontend
-│   ├── index.html           # SPA entry point
+│   ├── index.html           # SPA entry point (includes app routing)
 │   ├── icon.png             # App icon
 │   ├── favicon.svg          # SVG favicon
 │   ├── css/style.css        # Cyber-tech theme
 │   └── js/
-│       ├── api.js           # API client
-│       ├── app.js           # App entry & routing
-│       ├── contacts.js      # Contacts module
+│       ├── contacts.js      # Contacts module (+ strengths CRUD)
 │       ├── dashboard.js     # Dashboard (Chart.js)
 │       ├── lunar.min.js     # Lunar calendar (UMD)
 │       ├── reminders.js     # Birthday reminders
 │       ├── settings.js      # Settings module
 │       ├── timeline.js      # Timeline + online pings
-│       └── utils.js         # Shared utilities
+│       └── utils.js         # API client + shared utilities
 ├── server/                  # Backend
 │   ├── index.js             # Express server
 │   ├── db.js                # Database schema & seeds
 │   ├── utils/
-│   │   └── lunar.js         # Shared lunar/solar calendar logic
+│   │   └── lunar.js         # Lunar/solar calendar logic + conversion API
 │   └── routes/
-│       ├── contacts.js      # Contacts CRUD + strengths + birthday sync
-│       ├── interactions.js  # Multi-person interactions
-│       ├── pings.js         # Online ping tracking
+│       ├── contacts.js      # Contacts CRUD + strengths + tags + birthday sync
+│       ├── interactions.js  # Multi-person interactions + online pings
 │       ├── reminders.js     # Birthday auto-roll
 │       ├── settings.js      # Record start date
-│       ├── stats.js         # Analytics queries
-│       ├── strengths.js     # Strength update/delete
-│       └── tags.js          # Tag management
+│       └── stats.js         # Analytics queries
 ├── data/                    # SQLite DB (auto-created, gitignored)
 ├── Dockerfile               # Docker build config
 ├── railway.toml             # Railway deployment config
