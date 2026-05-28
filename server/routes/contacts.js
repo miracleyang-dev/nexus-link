@@ -304,6 +304,30 @@ tagsRouter.delete('/:id', (req, res) => {
   }
 });
 
+// PUT /api/tags/:id - update tag
+tagsRouter.put('/:id', (req, res) => {
+  try {
+    const { name, color } = req.body;
+    const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Tag not found' });
+
+    const updates = [];
+    const params = { id: req.params.id };
+    if (name !== undefined) { updates.push('name = @name'); params.name = name; }
+    if (color !== undefined) { updates.push('color = @color'); params.color = color; }
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    db.prepare(`UPDATE tags SET ${updates.join(', ')} WHERE id = @id`).run(params);
+    const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    res.json(tag);
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(409).json({ error: '标签名已存在' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/contacts/:id/tags - assign tags to contact (mounted at /api by index.js)
 tagsRouter.post('/contacts/:id/tags', (req, res) => {
   try {

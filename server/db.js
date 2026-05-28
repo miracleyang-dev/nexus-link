@@ -400,6 +400,69 @@ function seedDatabase() {
   console.log('Database seeded successfully.');
 }
 
+// Migration: remove CHECK constraints on category and interaction type to allow custom values
+function migrateRemoveCheckConstraints() {
+  const contactsSQL = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='contacts'").get();
+  const interactionsSQL = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='interactions'").get();
+
+  if (contactsSQL && contactsSQL.sql.includes("CHECK(category")) {
+    console.log('[migration] Removing CHECK constraint from contacts.category ...');
+    db.exec(`
+      CREATE TABLE contacts_migrated (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        avatar_url TEXT,
+        company TEXT,
+        position TEXT,
+        birthday TEXT,
+        birthday_type TEXT DEFAULT 'solar' CHECK(birthday_type IN ('solar','lunar')),
+        zodiac TEXT,
+        mbti TEXT,
+        hometown TEXT,
+        current_city TEXT,
+        personality_traits TEXT,
+        strengths TEXT,
+        preferences TEXT,
+        notes TEXT,
+        relationship_level INTEGER DEFAULT 3 CHECK(relationship_level BETWEEN 1 AND 5),
+        category TEXT DEFAULT 'other',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      INSERT INTO contacts_migrated SELECT * FROM contacts;
+      DROP TABLE contacts;
+      ALTER TABLE contacts_migrated RENAME TO contacts;
+    `);
+    console.log('[migration] contacts.category CHECK removed.');
+  }
+
+  if (interactionsSQL && interactionsSQL.sql.includes("CHECK(type")) {
+    console.log('[migration] Removing CHECK constraint from interactions.type ...');
+    db.exec(`
+      CREATE TABLE interactions_migrated (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT DEFAULT 'other',
+        title TEXT NOT NULL,
+        content TEXT,
+        location TEXT,
+        date TEXT NOT NULL,
+        mood INTEGER DEFAULT 3 CHECK(mood BETWEEN 1 AND 5),
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      INSERT INTO interactions_migrated SELECT * FROM interactions;
+      DROP TABLE interactions;
+      ALTER TABLE interactions_migrated RENAME TO interactions;
+    `);
+    console.log('[migration] interactions.type CHECK removed.');
+  }
+}
+
+try {
+  migrateRemoveCheckConstraints();
+} catch (err) {
+  console.error('[migration] Failed:', err.message);
+}
+
 try {
   seedDatabase();
 } catch (err) {

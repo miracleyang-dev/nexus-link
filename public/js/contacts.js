@@ -189,13 +189,12 @@ const Contacts = {
         <div class="detail-section">
           <div class="flex items-center justify-between mb-3">
             <div class="detail-label">💪 个人长处</div>
-            ${(c.strengths_list || []).length < 2 ? `<button onclick="Contacts.showAddStrengthModal(${c.id},'${c.name}')" class="text-xs text-neon-blue hover:underline">+ 添加</button>` : ''}
           </div>
           ${(c.strengths_list || []).length ? `
             <div class="space-y-2">
               ${c.strengths_list.map(s => {
                 const pcfg = Utils.progressConfig[s.progress] || Utils.progressConfig.learning;
-                return `<div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 group">
+                return `<div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1.5">
                       <span class="text-sm text-gray-200">${s.content}</span>
@@ -205,14 +204,10 @@ const Contacts = {
                       ${Utils.progressBadge(s.progress)}
                     </div>
                   </div>
-                  <div class="shrink-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="Contacts.showEditStrengthModal(${c.id},'${c.name}',${s.id},'${s.content}',${s.rating},'${s.progress}')" class="text-gray-500 hover:text-neon-blue text-[11px] px-1.5 py-1 rounded">编辑</button>
-                    <button onclick="Contacts.deleteStrength(${c.id},${s.id})" class="text-gray-500 hover:text-red-400 text-[11px] px-1.5 py-1 rounded">删除</button>
-                  </div>
                 </div>`;
               }).join('')}
             </div>
-          ` : '<p class="text-sm text-gray-500">暂无记录，点击添加</p>'}
+          ` : '<p class="text-sm text-gray-500">暂无记录，点击编辑添加</p>'}
         </div>
 
         ${c.preferences ? `<div class="detail-section"><div class="detail-label">❤️ 兴趣偏好</div><div class="detail-value">${c.preferences}</div></div>` : ''}
@@ -260,12 +255,17 @@ const Contacts = {
   async showEditModal(id) {
     Utils.closeModal();
     const c = await API.getContact(id);
+    // Ensure strengths are loaded for the edit form
+    c._strengths = c.strengths || [];
     this._showFormModal('编辑联系人', c);
   },
 
   _showFormModal(title, c) {
     const isEdit = !!c.id;
     const methods = c.contact_methods || [];
+    const strengthsList = c._strengths || [];
+    // Store original strength IDs for diffing on save
+    this._originalStrengthIds = strengthsList.map(s => s.id);
     Utils.showModal(`
       <div class="p-6">
         <h2 class="text-lg font-bold text-white mb-6">${title}</h2>
@@ -328,9 +328,18 @@ const Contacts = {
               <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${c.personality_traits || ''}" placeholder="如：果断,有领导力,目标导向"></div>
               <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${c.preferences || ''}</textarea></div>
               <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${c.notes || ''}</textarea></div>
-              <p class="text-[10px] text-gray-600">💡 个人长处请在联系人详情中单独管理（逐条添加，支持评级与学习进度）</p>
             </div>
           </details>
+
+          <div class="border border-white/5 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-3">
+              <label class="detail-label">💪 个人长处 <span class="text-gray-600 text-[10px]">(选填，支持评级与进度)</span></label>
+              <button type="button" onclick="Contacts.addStrengthRow()" class="text-xs text-neon-blue hover:underline">+ 添加长处</button>
+            </div>
+            <div id="strengths-list" class="space-y-2">
+              ${strengthsList.map(s => Contacts._strengthRowHTML(s.id, s.content, s.rating, s.progress)).join('')}
+            </div>
+          </div>
 
           <!-- Tags -->
           <div>
@@ -380,6 +389,48 @@ const Contacts = {
     const div = document.createElement('div');
     div.innerHTML = Contacts._methodRowHTML('', '', list.children.length);
     list.appendChild(div.firstElementChild);
+  },
+
+  // ── Strength row helpers ──
+
+  _strengthRowHTML(id, content, rating, progress) {
+    content = content || '';
+    rating = rating || 4;
+    progress = progress || 'learning';
+    const dataId = id ? `data-strength-id="${id}"` : '';
+    return `
+      <div class="strength-row flex items-center gap-2" ${dataId}>
+        <input class="form-input flex-1" value="${content}" placeholder="如：沟通能力强" maxlength="30" data-strength-content>
+        <select class="form-input w-24 text-xs" data-strength-rating>
+          ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
+        </select>
+        <select class="form-input w-28 text-xs" data-strength-progress>
+          ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+        </select>
+        <button type="button" onclick="this.closest('.strength-row').remove()" class="text-gray-500 hover:text-red-400 text-sm px-1">✕</button>
+      </div>
+    `;
+  },
+
+  addStrengthRow() {
+    const list = document.getElementById('strengths-list');
+    if (!list) return;
+    const div = document.createElement('div');
+    div.innerHTML = Contacts._strengthRowHTML(null, '', 4, 'learning');
+    list.appendChild(div.firstElementChild);
+  },
+
+  _collectStrengths() {
+    const rows = document.querySelectorAll('#strengths-list .strength-row');
+    const strengths = [];
+    rows.forEach(row => {
+      const content = row.querySelector('[data-strength-content]').value.trim();
+      const rating = parseInt(row.querySelector('[data-strength-rating]').value) || 3;
+      const progress = row.querySelector('[data-strength-progress]').value;
+      const id = row.dataset.strengthId ? parseInt(row.dataset.strengthId) : null;
+      if (content) strengths.push({ id, content, rating, progress });
+    });
+    return strengths;
   },
 
   // Collect contact methods from form
@@ -435,6 +486,9 @@ const Contacts = {
     // Collect contact methods
     data.contact_methods = this._collectMethods();
 
+    // Collect strengths from form
+    const formStrengths = this._collectStrengths();
+
     const tagCheckboxes = e.target.querySelectorAll('input[name="tags"]:checked');
     const tagIds = Array.from(tagCheckboxes).map(cb => parseInt(cb.value));
 
@@ -450,6 +504,28 @@ const Contacts = {
       if (tagIds.length > 0) {
         await API.assignTags(id, tagIds);
       }
+
+      // Sync strengths: diff against originals
+      const originalIds = this._originalStrengthIds || [];
+      const currentIds = formStrengths.filter(s => s.id).map(s => s.id);
+
+      // Delete removed strengths
+      for (const oid of originalIds) {
+        if (!currentIds.includes(oid)) {
+          await API.deleteStrength(oid);
+        }
+      }
+
+      // Create or update strengths
+      for (const s of formStrengths) {
+        const payload = { content: s.content, rating: s.rating, progress: s.progress };
+        if (s.id) {
+          await API.updateStrength(s.id, payload);
+        } else {
+          await API.createStrength(id, payload);
+        }
+      }
+
       Utils.closeModal();
       Utils.toast(isUpdate ? '联系人已更新' : '联系人已创建');
       await this.loadContacts();
@@ -525,108 +601,6 @@ const Contacts = {
     }
   },
 
-  // ── Strengths CRUD ──
-
-  showAddStrengthModal(contactId, contactName) {
-    Utils.closeModal();
-    setTimeout(() => {
-      Utils.showModal(`
-        <div class="p-6">
-          <h2 class="text-lg font-bold text-white mb-6">添加优点 - ${contactName}</h2>
-          <form onsubmit="Contacts.saveStrength(event, ${contactId})" class="space-y-4">
-            <div><label class="detail-label block mb-1">优点描述 *</label><input name="content" class="form-input" required placeholder="一项具体优点，如：沟通能力强" maxlength="30"></div>
-            <div class="grid grid-cols-2 gap-4">
-              <div><label class="detail-label block mb-1">评级</label>
-                <select name="rating" class="form-input">
-                  ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===4?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)} ${i}分</option>`).join('')}
-                </select>
-              </div>
-              <div><label class="detail-label block mb-1">学习进度</label>
-                <select name="progress" class="form-input">
-                  ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k==='learning'?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-              <button type="button" onclick="Utils.closeModal()" class="btn-ghost">取消</button>
-              <button type="submit" class="btn-primary">保存</button>
-            </div>
-          </form>
-        </div>
-      `);
-    }, 200);
-  },
-
-  showEditStrengthModal(contactId, contactName, strengthId, content, rating, progress) {
-    Utils.closeModal();
-    setTimeout(() => {
-      Utils.showModal(`
-        <div class="p-6">
-          <h2 class="text-lg font-bold text-white mb-6">编辑优点 - ${contactName}</h2>
-          <form onsubmit="Contacts.updateStrength(event, ${contactId}, ${strengthId})" class="space-y-4">
-            <div><label class="detail-label block mb-1">优点描述 *</label><input name="content" class="form-input" required value="${content}" maxlength="30"></div>
-            <div class="grid grid-cols-2 gap-4">
-              <div><label class="detail-label block mb-1">评级</label>
-                <select name="rating" class="form-input">
-                  ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)} ${i}分</option>`).join('')}
-                </select>
-              </div>
-              <div><label class="detail-label block mb-1">学习进度</label>
-                <select name="progress" class="form-input">
-                  ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-              <button type="button" onclick="Utils.closeModal()" class="btn-ghost">取消</button>
-              <button type="submit" class="btn-primary">保存修改</button>
-            </div>
-          </form>
-        </div>
-      `);
-    }, 200);
-  },
-
-  async saveStrength(e, contactId) {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const data = {};
-    for (const [k, v] of form.entries()) data[k] = v;
-    data.rating = parseInt(data.rating) || 3;
-    try {
-      await API.createStrength(contactId, data);
-      Utils.closeModal();
-      Utils.toast('优点已添加');
-      setTimeout(() => this.showDetail(contactId), 200);
-    } catch (err) {
-      Utils.toast(err.message, 'error');
-    }
-  },
-
-  async updateStrength(e, contactId, strengthId) {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const data = {};
-    for (const [k, v] of form.entries()) data[k] = v;
-    data.rating = parseInt(data.rating) || 3;
-    try {
-      await API.updateStrength(strengthId, data);
-      Utils.closeModal();
-      Utils.toast('优点已更新');
-      setTimeout(() => this.showDetail(contactId), 200);
-    } catch (err) {
-      Utils.toast(err.message, 'error');
-    }
-  },
-
-  async deleteStrength(contactId, strengthId) {
-    if (!confirm('确定删除此优点？')) return;
-    try {
-      await API.deleteStrength(strengthId);
-      Utils.toast('优点已删除');
-      this.showDetail(contactId);
-    } catch (err) {
-      Utils.toast(err.message, 'error');
-    }
-  },
+  // ── Strengths (managed via contact edit form) ──
+  // Strengths CRUD is handled inline within saveContact() via _collectStrengths() diffing.
 };

@@ -188,7 +188,8 @@
     }
 
     // Boot
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      await Utils.loadCustomConfigs();
       switchView('contacts');
       // Load reminder count for badge
       Reminders.init().catch(() => {});

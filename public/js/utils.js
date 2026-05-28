@@ -26,6 +26,7 @@ const API = {
   // Tags
   getTags() { return this.request('GET', '/tags'); },
   createTag(data) { return this.request('POST', '/tags', data); },
+  updateTag(id, data) { return this.request('PUT', `/tags/${id}`, data); },
   deleteTag(id) { return this.request('DELETE', `/tags/${id}`); },
   assignTags(contactId, tagIds) { return this.request('POST', `/contacts/${contactId}/tags`, { tag_ids: tagIds }); },
 
@@ -73,6 +74,11 @@ const API = {
   getSettings() { return this.request('GET', '/settings'); },
   setRecordStartDate(date) { return this.request('PUT', '/settings/record-start-date', { date }); },
   clearRecordStartDate() { return this.request('DELETE', '/settings/record-start-date'); },
+  exportData() { return this.request('GET', '/settings/export'); },
+  importData(data) { return this.request('POST', '/settings/import', data); },
+  clearAllData() { return this.request('DELETE', '/settings/clear-all'); },
+  saveCustomCategories(categories) { return this.request('PUT', '/settings/custom-categories', { categories }); },
+  saveCustomInteractionTypes(types) { return this.request('PUT', '/settings/custom-interaction-types', { types }); },
 
   // Online Pings
   getPings(days = 7) { return this.request('GET', `/pings?days=${days}`); },
@@ -82,7 +88,14 @@ const API = {
 
 // Utility functions
 const Utils = {
-  // Category config
+  // Default category config (can be overridden by custom settings)
+  _defaultCategories: {
+    friend: { label: '朋友', color: '#10b981', bg: 'rgba(16,185,129,0.1)', icon: '👋' },
+    family: { label: '家人', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: '❤️' },
+    colleague: { label: '同事', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', icon: '💼' },
+    business: { label: '商务', color: '#a855f7', bg: 'rgba(168,85,247,0.1)', icon: '🤝' },
+    other: { label: '其他', color: '#6b7280', bg: 'rgba(107,114,128,0.1)', icon: '📌' },
+  },
   categories: {
     friend: { label: '朋友', color: '#10b981', bg: 'rgba(16,185,129,0.1)', icon: '👋' },
     family: { label: '家人', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: '❤️' },
@@ -91,7 +104,15 @@ const Utils = {
     other: { label: '其他', color: '#6b7280', bg: 'rgba(107,114,128,0.1)', icon: '📌' },
   },
 
-  // Interaction type config
+  // Default interaction type config (can be overridden by custom settings)
+  _defaultInteractionTypes: {
+    meet: { label: '见面', icon: '🤝', color: '#10b981' },
+    call: { label: '通话', icon: '📞', color: '#3b82f6' },
+    chat: { label: '聊天', icon: '💬', color: '#8b5cf6' },
+    gift: { label: '送礼', icon: '🎁', color: '#ec4899' },
+    meal: { label: '聚餐', icon: '🍽️', color: '#f59e0b' },
+    other: { label: '其他', icon: '📝', color: '#6b7280' },
+  },
   interactionTypes: {
     meet: { label: '见面', icon: '🤝', color: '#10b981' },
     call: { label: '通话', icon: '📞', color: '#3b82f6' },
@@ -99,6 +120,19 @@ const Utils = {
     gift: { label: '送礼', icon: '🎁', color: '#ec4899' },
     meal: { label: '聚餐', icon: '🍽️', color: '#f59e0b' },
     other: { label: '其他', icon: '📝', color: '#6b7280' },
+  },
+
+  // Load custom configs from settings
+  async loadCustomConfigs() {
+    try {
+      const settings = await API.getSettings();
+      if (settings.custom_categories && typeof settings.custom_categories === 'object') {
+        this.categories = settings.custom_categories;
+      }
+      if (settings.custom_interaction_types && typeof settings.custom_interaction_types === 'object') {
+        this.interactionTypes = settings.custom_interaction_types;
+      }
+    } catch { /* use defaults */ }
   },
 
   // Mood config
