@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { Solar, Lunar } = require('lunar-javascript');
+const { getNextBirthdaySolarDate } = require('../utils/lunar');
 
 // Helper: roll expired birthday reminders to next year
 function rollExpiredBirthdays() {
@@ -20,36 +20,15 @@ function rollExpiredBirthdays() {
   for (const r of expired) {
     if (!r.birthday) continue;
     const [, month, day] = r.birthday.split('-').map(Number);
-    let solarDate;
-    let calLabel;
+    const result = getNextBirthdaySolarDate(month, day, r.birthday_type);
+    if (!result) continue;
 
-    if (r.birthday_type === 'lunar') {
-      calLabel = '农历';
-      try {
-        // Try this year first
-        const lunarBday = Lunar.fromYmd(today.getFullYear(), month, day);
-        solarDate = lunarBday.getSolar();
-        solarDate = new Date(solarDate.getYear(), solarDate.getMonth() - 1, solarDate.getDay());
-        if (solarDate < today) {
-          const nextLunar = Lunar.fromYmd(today.getFullYear() + 1, month, day);
-          const nextSolar = nextLunar.getSolar();
-          solarDate = new Date(nextSolar.getYear(), nextSolar.getMonth() - 1, nextSolar.getDay());
-        }
-      } catch { continue; }
-    } else {
-      calLabel = '公历';
-      solarDate = new Date(today.getFullYear(), month - 1, day);
-      if (solarDate < today) {
-        solarDate.setFullYear(solarDate.getFullYear() + 1);
-      }
-    }
-
-    const newDateStr = solarDate.toISOString().split('T')[0];
+    const newDateStr = result.solarDate.toISOString().split('T')[0];
     // Update the reminder to next occurrence
     db.prepare(`
       UPDATE reminders SET remind_date = ?, is_completed = 0, description = ?
       WHERE id = ?
-    `).run(newDateStr, `${calLabel} ${r.birthday.slice(5)}`, r.id);
+    `).run(newDateStr, `${result.calLabel} ${r.birthday.slice(5)}`, r.id);
   }
 }
 

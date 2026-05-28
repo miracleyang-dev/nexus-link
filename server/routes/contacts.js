@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { Solar, Lunar } = require('lunar-javascript');
+const { getNextBirthdaySolarDate } = require('../utils/lunar');
 
 // Helper: sync birthday reminder for a contact
 function syncBirthdayReminder(contactId) {
@@ -12,36 +12,14 @@ function syncBirthdayReminder(contactId) {
   if (!contact || !contact.birthday) return;
 
   const [, month, day] = contact.birthday.split('-').map(Number);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let solarDate;
-  let calLabel;
+  const result = getNextBirthdaySolarDate(month, day, contact.birthday_type);
+  if (!result) return;
 
-  if (contact.birthday_type === 'lunar') {
-    calLabel = '农历';
-    try {
-      const lunarBday = Lunar.fromYmd(today.getFullYear(), month, day);
-      solarDate = lunarBday.getSolar();
-      solarDate = new Date(solarDate.getYear(), solarDate.getMonth() - 1, solarDate.getDay());
-      if (solarDate < today) {
-        const nextLunar = Lunar.fromYmd(today.getFullYear() + 1, month, day);
-        const nextSolar = nextLunar.getSolar();
-        solarDate = new Date(nextSolar.getYear(), nextSolar.getMonth() - 1, nextSolar.getDay());
-      }
-    } catch { return; }
-  } else {
-    calLabel = '公历';
-    solarDate = new Date(today.getFullYear(), month - 1, day);
-    if (solarDate < today) {
-      solarDate.setFullYear(solarDate.getFullYear() + 1);
-    }
-  }
-
-  const dateStr = solarDate.toISOString().split('T')[0];
+  const dateStr = result.solarDate.toISOString().split('T')[0];
   db.prepare(`
     INSERT INTO reminders (contact_id, title, description, remind_date, is_completed)
     VALUES (?, ?, ?, ?, 0)
-  `).run(contact.id, `${contact.name}的生日`, `${calLabel} ${contact.birthday.slice(5)}`, dateStr);
+  `).run(contact.id, `${contact.name}的生日`, `${result.calLabel} ${contact.birthday.slice(5)}`, dateStr);
 }
 
 // GET /api/contacts - list all with tags, support filters
@@ -234,6 +212,46 @@ router.delete('/:id', (req, res) => {
     const info = db.prepare('DELETE FROM contacts WHERE id = ?').run(req.params.id);
     if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
     res.json({ message: 'Contact deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Strengths (sub-resource of contacts) ──────────────────────────
+
+// GET /api/contacts/:id/strengths
+router.get('/:id/strengths', (req, res) => {
+  try {
+    const strengths = db.prepare(
+      'SELECT * FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC, created_at ASC'
+    ).all(req.params.id);
+    res.json(strengths);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/contacts/:id/strengths - add (max 2 per contact)
+router.post('/:id/strengths', (req, res) => {
+  try {
+    const contactId = parseInt(req.params.id);
+    const { content, rating, progress } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'content is required' });
+    }
+
+    const existing = db.prepare('SELECT COUNT(*) as cnt FROM contact_strengths WHERE contact_id = ?').get(contactId);
+    if (existing.cnt >= 2) {
+      return res.status(400).json({ error: '每人最多 2 项优点' });
+    }
+
+    const info = db.prepare(`
+      INSERT INTO contact_strengths (contact_id, content, rating, progress)
+      VALUES (?, ?, ?, ?)
+    `).run(contactId, content.trim(), rating || 3, progress || 'learning');
+
+    const strength = db.prepare('SELECT * FROM contact_strengths WHERE id = ?').get(info.lastInsertRowid);
+    res.status(201).json(strength);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

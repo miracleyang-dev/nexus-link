@@ -1,44 +1,8 @@
+// Strength update/delete routes (kept separate because they mount at /api/strengths/:id)
+// GET and POST are in contacts.js under /api/contacts/:id/strengths
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-
-// GET /api/contacts/:id/strengths
-router.get('/contacts/:id/strengths', (req, res) => {
-  try {
-    const strengths = db.prepare(
-      'SELECT * FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC, created_at ASC'
-    ).all(req.params.id);
-    res.json(strengths);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/contacts/:id/strengths - add (max 2 per contact)
-router.post('/contacts/:id/strengths', (req, res) => {
-  try {
-    const contactId = parseInt(req.params.id);
-    const { content, rating, progress } = req.body;
-    if (!content || !content.trim()) {
-      return res.status(400).json({ error: 'content is required' });
-    }
-
-    const existing = db.prepare('SELECT COUNT(*) as cnt FROM contact_strengths WHERE contact_id = ?').get(contactId);
-    if (existing.cnt >= 2) {
-      return res.status(400).json({ error: '每人最多 2 项优点' });
-    }
-
-    const info = db.prepare(`
-      INSERT INTO contact_strengths (contact_id, content, rating, progress)
-      VALUES (?, ?, ?, ?)
-    `).run(contactId, content.trim(), rating || 3, progress || 'learning');
-
-    const strength = db.prepare('SELECT * FROM contact_strengths WHERE id = ?').get(info.lastInsertRowid);
-    res.status(201).json(strength);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // PUT /api/strengths/:id - update
 router.put('/strengths/:id', (req, res) => {

@@ -74,7 +74,7 @@ settings            — 系统设置
 ```
 ├── public/                  # Frontend
 │   ├── index.html           # SPA entry point
-│   ├── icon.png             # App icon (1024x1024)
+│   ├── icon.png             # App icon
 │   ├── favicon.svg          # SVG favicon
 │   ├── css/style.css        # Cyber-tech theme
 │   └── js/
@@ -90,16 +90,20 @@ settings            — 系统设置
 ├── server/                  # Backend
 │   ├── index.js             # Express server
 │   ├── db.js                # Database schema & seeds
+│   ├── utils/
+│   │   └── lunar.js         # Shared lunar/solar calendar logic
 │   └── routes/
-│       ├── contacts.js      # Contacts CRUD + birthday sync
+│       ├── contacts.js      # Contacts CRUD + strengths + birthday sync
 │       ├── interactions.js  # Multi-person interactions
 │       ├── pings.js         # Online ping tracking
 │       ├── reminders.js     # Birthday auto-roll
 │       ├── settings.js      # Record start date
 │       ├── stats.js         # Analytics queries
-│       ├── strengths.js     # Personal strengths
+│       ├── strengths.js     # Strength update/delete
 │       └── tags.js          # Tag management
 ├── data/                    # SQLite DB (auto-created, gitignored)
+├── Dockerfile               # Docker build config
+├── railway.toml             # Railway deployment config
 ├── package.json
 └── LICENSE
 ```
@@ -107,7 +111,7 @@ settings            — 系统设置
 ## Deployment (Railway)
 
 1. Fork or connect this repo to [Railway](https://railway.app)
-2. Railway auto-detects Node.js and runs `npm install` + `npm start`
+2. Railway builds the Docker image from `Dockerfile`
 3. Add a **Volume** (mount path: `/data`) for SQLite persistence
 4. Set environment variables:
 
@@ -116,7 +120,7 @@ settings            — 系统设置
 | `DB_PATH` | `/data/nexus.db` | Database file path (on Volume) |
 | `NODE_ENV` | `production` | Production mode |
 
-5. In **Settings → Networking**, click **Generate Domain** to get a public URL
+5. In **Settings → Networking**, click **Generate Domain** and set the port to **3000**
 
 ## Icon Design
 
