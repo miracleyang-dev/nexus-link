@@ -5,12 +5,23 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Startup diagnostics
+console.log(`[startup] NODE_ENV=${process.env.NODE_ENV || '(not set)'}`);
+console.log(`[startup] PORT env=${process.env.PORT || '(not set)'}, resolved=${PORT}`);
+console.log(`[startup] DB_PATH=${process.env.DB_PATH || '(not set, using default)'}`);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Health check endpoint — must be registered before db init so Railway
+// can reach it even if database initialization is slow
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', port: PORT });
+});
 
 // Initialize database (triggers table creation and seeding)
 try {
@@ -92,8 +103,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
+});
+
+// Prevent Railway reverse proxy timeout mismatches
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 70000;
+
+// Graceful shutdown — close DB and HTTP connections cleanly
+process.on('SIGTERM', () => {
+  console.log('[shutdown] SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    try {
+      const db = require('./db');
+      db.close();
+    } catch (_) { /* db may already be closed */ }
+    console.log('[shutdown] Server closed');
+    process.exit(0);
+  });
 });
 
 module.exports = app;
