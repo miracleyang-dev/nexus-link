@@ -2,10 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+// Catch any uncaught errors so the process never dies silently
+process.on('uncaughtException', (err) => {
+  console.error('[fatal] uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[fatal] unhandledRejection:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Startup diagnostics
+console.log(`[startup] pid=${process.pid}`);
+console.log(`[startup] node=${process.version}`);
 console.log(`[startup] NODE_ENV=${process.env.NODE_ENV || '(not set)'}`);
 console.log(`[startup] PORT env=${process.env.PORT || '(not set)'}, resolved=${PORT}`);
 console.log(`[startup] DB_PATH=${process.env.DB_PATH || '(not set, using default)'}`);

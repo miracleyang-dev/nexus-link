@@ -1,8 +1,7 @@
 [build]
-provider = "nixpacks"
+provider = "dockerfile"
 
 [deploy]
-startCommand = "node server/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
