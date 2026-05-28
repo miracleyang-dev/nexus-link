@@ -14,8 +14,9 @@ RUN npm install --omit=dev
 # Copy application code
 COPY . .
 
-# Railway injects PORT at runtime; default to 8080
-ENV PORT=8080
-EXPOSE 8080
+# Do NOT hardcode PORT — Railway networking expects a specific port.
+# Default to 3000 to match Railway's service domain config.
+ENV PORT=3000
+EXPOSE 3000
 
 CMD ["node", "server/index.js"]
