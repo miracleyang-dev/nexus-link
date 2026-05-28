@@ -31,11 +31,9 @@ const Dashboard = {
         </div>
 
         <!-- Stat Cards Row -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
           ${this.statCard('联系人', overview.total_contacts || 0, '👥', '#00d4ff', overview.new_contacts_this_month ? `本月 +${overview.new_contacts_this_month}` : '')}
           ${this.statCard('总互动', overview.total_interactions || 0, '💬', '#a855f7', overview.interactions_this_month ? `本月 ${overview.interactions_this_month} 次` : '')}
-          ${this.statCard('平均亲密度', overview.avg_relationship_level || 0, '💎', '#ec4899', '满分 5.0')}
-          ${this.statCard('待处理提醒', overview.upcoming_reminders || 0, '🔔', '#f59e0b', '未来 7 天')}
         </div>
 
         <!-- Row 1: Monthly Trend + Mood -->

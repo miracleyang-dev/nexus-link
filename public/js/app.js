@@ -22,7 +22,6 @@ function switchView(view) {
   switch (view) {
     case 'contacts': Contacts.init(); break;
     case 'timeline': Timeline.init(); break;
-    case 'graph': Graph.init(); break;
     case 'reminders': Reminders.init(); break;
     case 'dashboard': Dashboard.init(); break;
     case 'settings': Settings.init(); break;

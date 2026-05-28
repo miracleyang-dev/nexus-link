@@ -55,9 +55,9 @@ router.get('/overview', (req, res) => {
 router.get('/interaction-frequency', (req, res) => {
   try {
     const data = db.prepare(`
-      SELECT c.id, c.name, c.category, COUNT(i.id) as interaction_count
+      SELECT c.id, c.name, c.category, COUNT(ic.interaction_id) as interaction_count
       FROM contacts c
-      LEFT JOIN interactions i ON c.id = i.contact_id
+      JOIN interaction_contacts ic ON c.id = ic.contact_id
       GROUP BY c.id
       HAVING interaction_count > 0
       ORDER BY interaction_count DESC
@@ -164,15 +164,22 @@ router.get('/city-distribution', (req, res) => {
   }
 });
 
-// GET /api/stats/neglected - contacts with no recent interactions (30+ days)
+// GET /api/stats/neglected - contacts with no recent interactions or pings (30+ days)
 router.get('/neglected', (req, res) => {
   try {
     const data = db.prepare(`
       SELECT c.id, c.name, c.category, c.relationship_level,
-             MAX(i.date) as last_interaction,
-             CAST(julianday('now') - julianday(MAX(i.date)) AS INTEGER) as days_since
+             MAX(last_activity) as last_interaction,
+             CAST(julianday('now') - julianday(MAX(last_activity)) AS INTEGER) as days_since
       FROM contacts c
-      LEFT JOIN interactions i ON c.id = i.contact_id
+      LEFT JOIN (
+        SELECT ic.contact_id, i.date as last_activity
+        FROM interaction_contacts ic
+        JOIN interactions i ON ic.interaction_id = i.id
+        UNION ALL
+        SELECT contact_id, date as last_activity
+        FROM online_pings
+      ) activity ON c.id = activity.contact_id
       GROUP BY c.id
       HAVING last_interaction IS NOT NULL AND days_since >= 30
       ORDER BY days_since DESC

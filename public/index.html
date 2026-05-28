@@ -7,8 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <!-- D3.js for relationship graph -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
   <!-- Chart.js for dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
@@ -80,13 +78,9 @@
           <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span>互动时间线</span>
         </button>
-        <button onclick="switchView('graph')" data-nav="graph" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
-          <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
-          <span>关系图谱</span>
-        </button>
         <button onclick="switchView('reminders')" data-nav="reminders" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
           <svg class="w-[15px] h-[15px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span>智能提醒</span>
+          <span>生日提醒</span>
           <span id="reminder-badge" class="ml-auto bg-neon-pink/20 text-neon-pink text-[10px] px-1.5 py-0.5 rounded-full hidden">0</span>
         </button>
         <button onclick="switchView('dashboard')" data-nav="dashboard" class="nav-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all">
@@ -120,13 +114,9 @@
           <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           <span class="text-[10px]">时间线</span>
         </button>
-        <button onclick="switchView('graph')" data-nav-m="graph" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
-          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
-          <span class="text-[10px]">图谱</span>
-        </button>
         <button onclick="switchView('reminders')" data-nav-m="reminders" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all relative">
           <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span class="text-[10px]">提醒</span>
+          <span class="text-[10px]">生日</span>
           <span id="reminder-badge-m" class="absolute -top-0.5 right-1 bg-neon-pink text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center hidden">0</span>
         </button>
         <button onclick="switchView('dashboard')" data-nav-m="dashboard" class="mobile-nav-item flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all">
@@ -141,7 +131,6 @@
       <!-- Views will be inserted here by JS -->
       <div id="view-contacts" class="view-panel"></div>
       <div id="view-timeline" class="view-panel hidden"></div>
-      <div id="view-graph" class="view-panel hidden"></div>
       <div id="view-reminders" class="view-panel hidden"></div>
       <div id="view-dashboard" class="view-panel hidden"></div>
       <div id="view-settings" class="view-panel hidden"></div>
@@ -163,7 +152,6 @@
   <script src="js/utils.js"></script>
   <script src="js/contacts.js"></script>
   <script src="js/timeline.js"></script>
-  <script src="js/graph.js"></script>
   <script src="js/reminders.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/settings.js"></script>

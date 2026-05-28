@@ -1,6 +1,48 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { Solar, Lunar } = require('lunar-javascript');
+
+// Helper: sync birthday reminder for a contact
+function syncBirthdayReminder(contactId) {
+  // Delete existing birthday reminders for this contact
+  db.prepare('DELETE FROM reminders WHERE contact_id = ?').run(contactId);
+
+  const contact = db.prepare('SELECT id, name, birthday, birthday_type FROM contacts WHERE id = ?').get(contactId);
+  if (!contact || !contact.birthday) return;
+
+  const [, month, day] = contact.birthday.split('-').map(Number);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let solarDate;
+  let calLabel;
+
+  if (contact.birthday_type === 'lunar') {
+    calLabel = '农历';
+    try {
+      const lunarBday = Lunar.fromYmd(today.getFullYear(), month, day);
+      solarDate = lunarBday.getSolar();
+      solarDate = new Date(solarDate.getYear(), solarDate.getMonth() - 1, solarDate.getDay());
+      if (solarDate < today) {
+        const nextLunar = Lunar.fromYmd(today.getFullYear() + 1, month, day);
+        const nextSolar = nextLunar.getSolar();
+        solarDate = new Date(nextSolar.getYear(), nextSolar.getMonth() - 1, nextSolar.getDay());
+      }
+    } catch { return; }
+  } else {
+    calLabel = '公历';
+    solarDate = new Date(today.getFullYear(), month - 1, day);
+    if (solarDate < today) {
+      solarDate.setFullYear(solarDate.getFullYear() + 1);
+    }
+  }
+
+  const dateStr = solarDate.toISOString().split('T')[0];
+  db.prepare(`
+    INSERT INTO reminders (contact_id, title, description, remind_date, is_completed)
+    VALUES (?, ?, ?, ?, 0)
+  `).run(contact.id, `${contact.name}的生日`, `${calLabel} ${contact.birthday.slice(5)}`, dateStr);
+}
 
 // GET /api/contacts - list all with tags, support filters
 router.get('/', (req, res) => {
@@ -16,9 +58,9 @@ router.get('/', (req, res) => {
     const params = [];
 
     if (search) {
-      conditions.push(`(c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.company LIKE ? OR c.notes LIKE ?)`);
+      conditions.push(`(c.name LIKE ? OR c.company LIKE ? OR c.notes LIKE ?)`);
       const s = `%${search}%`;
-      params.push(s, s, s, s, s);
+      params.push(s, s, s);
     }
     if (category) {
       conditions.push(`c.category = ?`);
@@ -53,7 +95,7 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/contacts/:id - get one with tags and recent interactions
+// GET /api/contacts/:id - get one with tags, recent interactions, contact methods
 router.get('/:id', (req, res) => {
   try {
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
@@ -66,14 +108,31 @@ router.get('/:id', (req, res) => {
     `).all(req.params.id);
 
     const interactions = db.prepare(`
-      SELECT * FROM interactions WHERE contact_id = ? ORDER BY date DESC LIMIT 10
+      SELECT i.* FROM interactions i
+      JOIN interaction_contacts ic ON i.id = ic.interaction_id
+      WHERE ic.contact_id = ?
+      ORDER BY i.date DESC LIMIT 10
     `).all(req.params.id);
+
+    // For each interaction, get all associated contact names
+    const enrichedInteractions = interactions.map(i => {
+      const contactNames = db.prepare(`
+        SELECT c.name FROM contacts c
+        JOIN interaction_contacts ic ON c.id = ic.contact_id
+        WHERE ic.interaction_id = ?
+      `).all(i.id).map(c => c.name);
+      return { ...i, contact_names: contactNames };
+    });
 
     const strengthsList = db.prepare(`
       SELECT * FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC, created_at ASC
     `).all(req.params.id);
 
-    res.json({ ...contact, tags, recent_interactions: interactions, strengths: strengthsList });
+    const contactMethods = db.prepare(`
+      SELECT * FROM contact_methods WHERE contact_id = ? ORDER BY created_at ASC
+    `).all(req.params.id);
+
+    res.json({ ...contact, tags, recent_interactions: enrichedInteractions, strengths: strengthsList, contact_methods: contactMethods });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -83,8 +142,8 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const fields = [
-      'name', 'avatar_url', 'phone', 'email', 'company', 'position',
-      'birthday', 'birthday_type', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'name', 'avatar_url', 'company', 'position',
+      'birthday', 'birthday_type', 'zodiac', 'mbti', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
       'relationship_level', 'category'
     ];
@@ -98,8 +157,22 @@ router.post('/', (req, res) => {
     const placeholders = cols.map(c => '@' + c).join(', ');
     const stmt = db.prepare(`INSERT INTO contacts (${cols.join(', ')}) VALUES (${placeholders})`);
     const info = stmt.run(data);
+    const contactId = info.lastInsertRowid;
 
-    const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(info.lastInsertRowid);
+    // Save contact methods
+    if (req.body.contact_methods && Array.isArray(req.body.contact_methods)) {
+      const insertMethod = db.prepare('INSERT INTO contact_methods (contact_id, type, value) VALUES (?, ?, ?)');
+      for (const m of req.body.contact_methods) {
+        if (m.type && m.value) insertMethod.run(contactId, m.type, m.value);
+      }
+    }
+
+    // Sync birthday reminder
+    if (data.birthday) {
+      syncBirthdayReminder(contactId);
+    }
+
+    const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(contactId);
     res.status(201).json(contact);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -113,8 +186,8 @@ router.put('/:id', (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Contact not found' });
 
     const fields = [
-      'name', 'avatar_url', 'phone', 'email', 'company', 'position',
-      'birthday', 'birthday_type', 'zodiac', 'mbti', 'blood_type', 'hometown', 'current_city',
+      'name', 'avatar_url', 'company', 'position',
+      'birthday', 'birthday_type', 'zodiac', 'mbti', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
       'relationship_level', 'category'
     ];
@@ -126,12 +199,28 @@ router.put('/:id', (req, res) => {
         params[f] = req.body[f];
       }
     }
-    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    if (updates.length === 0 && !req.body.contact_methods) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
 
-    updates.push("updated_at = datetime('now')");
-    params.id = req.params.id;
+    if (updates.length > 0) {
+      updates.push("updated_at = datetime('now')");
+      params.id = req.params.id;
+      db.prepare(`UPDATE contacts SET ${updates.join(', ')} WHERE id = @id`).run(params);
+    }
 
-    db.prepare(`UPDATE contacts SET ${updates.join(', ')} WHERE id = @id`).run(params);
+    // Replace contact methods if provided
+    if (req.body.contact_methods && Array.isArray(req.body.contact_methods)) {
+      db.prepare('DELETE FROM contact_methods WHERE contact_id = ?').run(req.params.id);
+      const insertMethod = db.prepare('INSERT INTO contact_methods (contact_id, type, value) VALUES (?, ?, ?)');
+      for (const m of req.body.contact_methods) {
+        if (m.type && m.value) insertMethod.run(req.params.id, m.type, m.value);
+      }
+    }
+
+    // Sync birthday reminder
+    syncBirthdayReminder(req.params.id);
+
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
     res.json(contact);
   } catch (err) {

@@ -31,11 +31,7 @@ router.put('/record-start-date', (req, res) => {
       // 2. Delete reminders with remind_date before start date
       const delReminders = db.prepare('DELETE FROM reminders WHERE remind_date < ?').run(date);
 
-      // 3. Delete contacts created before start date
-      //    CASCADE will also remove their tags, strengths, relationships
-      const delContacts = db.prepare('DELETE FROM contacts WHERE created_at < ?').run(date);
-
-      // 4. Save the setting (upsert)
+      // 3. Save the setting (upsert)
       db.prepare(`
         INSERT INTO settings (key, value, updated_at) VALUES ('record_start_date', ?, datetime('now'))
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
@@ -44,7 +40,6 @@ router.put('/record-start-date', (req, res) => {
       return {
         deleted_interactions: delInteractions.changes,
         deleted_reminders: delReminders.changes,
-        deleted_contacts: delContacts.changes,
       };
     });
 

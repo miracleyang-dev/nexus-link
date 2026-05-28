@@ -46,7 +46,7 @@ const Contacts = {
           </div>
         </div>
 
-        <!-- Category Filter Chips (horizontal scroll on mobile) -->
+        <!-- Category Filter Chips -->
         <div class="flex gap-2 mb-4 filter-scroll">
           <button onclick="Contacts.filterCategory('')" class="filter-chip ${!this.currentFilter.category ? 'active' : ''}">全部</button>
           ${Object.entries(Utils.categories).map(([key, cat]) =>
@@ -54,7 +54,7 @@ const Contacts = {
           ).join('')}
         </div>
 
-        <!-- Tag Filter (horizontal scroll on mobile) -->
+        <!-- Tag Filter -->
         ${this.tags.length ? `
         <div class="flex gap-2 mb-6 filter-scroll">
           ${this.tags.map(t => `
@@ -126,6 +126,7 @@ const Contacts = {
     const c = await API.getContact(id);
     const interactions = c.recent_interactions || [];
     const tags = c.tags || [];
+    const methods = c.contact_methods || [];
     c.strengths_list = c.strengths || [];
 
     Utils.showModal(`
@@ -149,10 +150,22 @@ const Contacts = {
           </div>
         </div>
 
+        <!-- Contact Methods -->
+        ${methods.length ? `
+        <div class="detail-section">
+          <div class="detail-label mb-2">📱 联系方式</div>
+          <div class="space-y-1.5">
+            ${methods.map(m => `
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-[11px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">${m.type}</span>
+                <span class="text-gray-200">${m.value}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+
         <!-- Info Grid -->
         <div class="grid grid-cols-2 gap-4 mb-6">
-          ${this.detailField('手机', c.phone, '📱')}
-          ${this.detailField('邮箱', c.email, '📧')}
           ${c.birthday ? (() => {
             const typeLabel = c.birthday_type === 'lunar' ? '农历' : '公历';
             let birthdayHtml = `${c.birthday} (${typeLabel})`;
@@ -167,13 +180,10 @@ const Contacts = {
             return this.detailField('生日', birthdayHtml, '🎂');
           })() : ''}
           ${this.detailField('MBTI', c.mbti, '🧠')}
-          ${this.detailField('血型', c.blood_type ? c.blood_type + '型' : null, '🩸')}
           ${this.detailField('家乡', c.hometown, '🏠')}
           ${this.detailField('现居', c.current_city, '📍')}
           ${this.detailField('性格特征', c.personality_traits, '✦')}
         </div>
-
-        ${c.personality_traits ? `<div class="detail-section"><div class="detail-label">✦ 性格特征</div><div class="detail-value">${c.personality_traits}</div></div>` : ''}
 
         <!-- Structured Strengths -->
         <div class="detail-section">
@@ -221,11 +231,12 @@ const Contacts = {
             <div class="space-y-2">
               ${interactions.slice(0, 5).map(i => {
                 const t = Utils.interactionTypes[i.type] || Utils.interactionTypes.other;
+                const names = (i.contact_names || []).join(', ');
                 return `<div class="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02]">
                   <div class="type-icon" style="background:${t.color}20;color:${t.color}">${t.icon}</div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm text-gray-200 truncate">${i.title}</p>
-                    <p class="text-[11px] text-gray-500">${Utils.formatDate(i.date)} · ${t.label}</p>
+                    <p class="text-[11px] text-gray-500">${Utils.formatDate(i.date)} · ${t.label}${names ? ` · ${names}` : ''}</p>
                   </div>
                   <span class="mood-indicator">${Utils.moods[i.mood] || ''}</span>
                 </div>`;
@@ -254,6 +265,7 @@ const Contacts = {
 
   _showFormModal(title, c) {
     const isEdit = !!c.id;
+    const methods = c.contact_methods || [];
     Utils.showModal(`
       <div class="p-6">
         <h2 class="text-lg font-bold text-white mb-6">${title}</h2>
@@ -266,10 +278,19 @@ const Contacts = {
                 ${Object.entries(Utils.categories).map(([k, v]) => `<option value="${k}" ${c.category === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
               </select>
             </div>
-            <div><label class="detail-label block mb-1">手机 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="phone" class="form-input" value="${c.phone || ''}"></div>
-            <div><label class="detail-label block mb-1">邮箱 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="email" class="form-input" type="email" value="${c.email || ''}"></div>
             <div><label class="detail-label block mb-1">公司 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="company" class="form-input" value="${c.company || ''}"></div>
             <div><label class="detail-label block mb-1">职位 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="position" class="form-input" value="${c.position || ''}"></div>
+          </div>
+
+          <!-- Contact Methods (dynamic) -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="detail-label">联系方式 <span class="text-gray-600 text-[10px]">(选填)</span></label>
+              <button type="button" onclick="Contacts.addMethodRow()" class="text-xs text-neon-blue hover:underline">+ 添加</button>
+            </div>
+            <div id="contact-methods-list" class="space-y-2">
+              ${methods.length ? methods.map((m, idx) => Contacts._methodRowHTML(m.type, m.value, idx)).join('') : Contacts._methodRowHTML('微信', '', 0)}
+            </div>
           </div>
 
           <!-- Birthday with calendar type -->
@@ -285,17 +306,11 @@ const Contacts = {
           <div id="birthday-conversion" class="text-xs text-gray-500 -mt-2 pl-1 hidden"></div>
 
           <!-- More Info (collapsible) -->
-          <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.blood_type || c.hometown || c.current_city) ? 'open' : ''}>
+          <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 grid grid-cols-2 gap-4">
               <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
               <div><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
-              <div><label class="detail-label block mb-1">血型</label>
-                <select name="blood_type" class="form-input">
-                  <option value="">未知</option>
-                  ${['A','B','AB','O'].map(t => `<option value="${t}" ${c.blood_type === t ? 'selected' : ''}>${t}型</option>`).join('')}
-                </select>
-              </div>
               <div><label class="detail-label block mb-1">亲密度</label>
                 <select name="relationship_level" class="form-input">
                   ${[1,2,3,4,5].map(i => `<option value="${i}" ${(c.relationship_level||3) == i ? 'selected' : ''}>${i} - ${'★'.repeat(i)}</option>`).join('')}
@@ -344,6 +359,41 @@ const Contacts = {
     }
   },
 
+  // Contact method row HTML
+  _methodRowHTML(type, value, idx) {
+    const presets = ['微信', '邮箱'];
+    return `<div class="flex items-center gap-2 method-row">
+      <div class="relative">
+        <input list="method-types" class="form-input w-20 text-xs" value="${type || ''}" placeholder="类型" data-method-type>
+        <datalist id="method-types">
+          ${presets.map(p => `<option value="${p}">`).join('')}
+        </datalist>
+      </div>
+      <input class="form-input flex-1" value="${value || ''}" placeholder="账号/号码" data-method-value>
+      <button type="button" onclick="this.closest('.method-row').remove()" class="text-gray-500 hover:text-red-400 text-sm px-1">✕</button>
+    </div>`;
+  },
+
+  addMethodRow() {
+    const list = document.getElementById('contact-methods-list');
+    if (!list) return;
+    const div = document.createElement('div');
+    div.innerHTML = Contacts._methodRowHTML('', '', list.children.length);
+    list.appendChild(div.firstElementChild);
+  },
+
+  // Collect contact methods from form
+  _collectMethods() {
+    const rows = document.querySelectorAll('#contact-methods-list .method-row');
+    const methods = [];
+    rows.forEach(row => {
+      const type = row.querySelector('[data-method-type]').value.trim();
+      const value = row.querySelector('[data-method-value]').value.trim();
+      if (type && value) methods.push({ type, value });
+    });
+    return methods;
+  },
+
   onBirthdayChange(input) {
     const form = input.closest('form');
     const type = form.querySelector('[name="birthday_type"]').value;
@@ -381,6 +431,9 @@ const Contacts = {
     }
     data.relationship_level = parseInt(data.relationship_level) || 3;
     if (!data.birthday_type) data.birthday_type = 'solar';
+
+    // Collect contact methods
+    data.contact_methods = this._collectMethods();
 
     const tagCheckboxes = e.target.querySelectorAll('input[name="tags"]:checked');
     const tagIds = Array.from(tagCheckboxes).map(cb => parseInt(cb.value));
@@ -428,7 +481,7 @@ const Contacts = {
       Utils.showModal(`
         <div class="p-6">
           <h2 class="text-lg font-bold text-white mb-6">添加互动 - ${contactName}</h2>
-          <form onsubmit="Contacts.saveInteraction(event, ${contactId})" class="space-y-4">
+          <form onsubmit="Contacts.saveInteraction(event, [${contactId}])" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div><label class="detail-label block mb-1">类型</label>
                 <select name="type" class="form-input">
@@ -457,10 +510,10 @@ const Contacts = {
     }, 200);
   },
 
-  async saveInteraction(e, contactId) {
+  async saveInteraction(e, contactIds) {
     e.preventDefault();
     const form = new FormData(e.target);
-    const data = { contact_id: contactId };
+    const data = { contact_ids: contactIds };
     for (const [k, v] of form.entries()) data[k] = v;
     data.mood = parseInt(data.mood) || 3;
     try {

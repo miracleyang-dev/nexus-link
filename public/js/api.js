@@ -44,7 +44,6 @@ const API = {
     return this.request('GET', '/reminders' + (q ? '?' + q : ''));
   },
   getUpcomingReminders() { return this.request('GET', '/reminders/upcoming'); },
-  createReminder(data) { return this.request('POST', '/reminders', data); },
   updateReminder(id, data) { return this.request('PUT', `/reminders/${id}`, data); },
   deleteReminder(id) { return this.request('DELETE', `/reminders/${id}`); },
 
@@ -58,11 +57,6 @@ const API = {
   getMoodTrend() { return this.request('GET', '/stats/mood-trend'); },
   getCityDistribution() { return this.request('GET', '/stats/city-distribution'); },
   getNeglected() { return this.request('GET', '/stats/neglected'); },
-
-  // Relationships (graph)
-  getRelationships() { return this.request('GET', '/relationships'); },
-  createRelationship(data) { return this.request('POST', '/relationships', data); },
-  deleteRelationship(id) { return this.request('DELETE', `/relationships/${id}`); },
 
   // Strengths
   getStrengths(contactId) { return this.request('GET', `/contacts/${contactId}/strengths`); },
@@ -79,4 +73,9 @@ const API = {
   getSettings() { return this.request('GET', '/settings'); },
   setRecordStartDate(date) { return this.request('PUT', '/settings/record-start-date', { date }); },
   clearRecordStartDate() { return this.request('DELETE', '/settings/record-start-date'); },
+
+  // Online Pings
+  getPings(days = 7) { return this.request('GET', `/pings?days=${days}`); },
+  createPing(date, contact_id) { return this.request('POST', '/pings', { date, contact_id }); },
+  deletePing(date, contact_id) { return this.request('DELETE', `/pings?date=${date}&contact_id=${contact_id}`); },
 };
