@@ -400,6 +400,12 @@ function seedDatabase() {
   console.log('Database seeded successfully.');
 }
 
-seedDatabase();
+try {
+  seedDatabase();
+} catch (err) {
+  console.error('Failed to seed database:', err.message);
+  console.error(err.stack);
+  // Don't exit - the database is still usable even if seeding fails
+}
 
 module.exports = db;
