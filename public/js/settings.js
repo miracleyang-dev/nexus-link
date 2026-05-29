@@ -33,6 +33,7 @@ const Settings = {
         ${this._renderExplanation()}
       </div>
     `;
+    this._bindSortables();
   },
 
   // ── Section renderers ──
@@ -46,9 +47,10 @@ const Settings = {
             <h3 class="text-sm font-semibold text-white mb-1">标签管理</h3>
             <p class="text-xs text-gray-500 mb-4">添加、编辑或删除联系人标签</p>
 
-            <div class="space-y-2">
+            <div class="space-y-2 settings-sortable" data-sort-type="tags">
               ${this.tags.map(t => `
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 settings-sortable-item" data-sort-key="${t.id}">
+                  <span class="settings-drag-handle" title="拖拽排序">::</span>
                   <span class="tag-pill" style="color:${t.color};border-color:${t.color}40;background:${t.color}15">${t.name}</span>
                   <span class="text-[11px] text-gray-500">${t.contact_count || 0} 人</span>
                   <button onclick="Settings.editTagName(${t.id}, '${t.name.replace(/'/g, "&#39;")}')" class="text-xs text-gray-500 hover:text-neon-blue">改名</button>
@@ -79,9 +81,10 @@ const Settings = {
             <h3 class="text-sm font-semibold text-white mb-1">联系人分类</h3>
             <p class="text-xs text-gray-500 mb-4">自定义联系人分类，可增删改</p>
 
-            <div class="space-y-2">
+            <div class="space-y-2 settings-sortable" data-sort-type="categories">
               ${Object.entries(cats).map(([key, cat]) => `
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 settings-sortable-item" data-sort-key="${key}">
+                  <span class="settings-drag-handle" title="拖拽排序">::</span>
                   <span class="text-sm">${cat.icon}</span>
                   <span class="text-sm text-gray-200">${cat.label}</span>
                   <span class="text-[11px] text-gray-500">${key}</span>
@@ -108,9 +111,10 @@ const Settings = {
             <h3 class="text-sm font-semibold text-white mb-1">互动类型</h3>
             <p class="text-xs text-gray-500 mb-4">自定义互动记录的类型</p>
 
-            <div class="space-y-2">
+            <div class="space-y-2 settings-sortable" data-sort-type="interaction-types">
               ${Object.entries(types).map(([key, t]) => `
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 settings-sortable-item" data-sort-key="${key}">
+                  <span class="settings-drag-handle" title="拖拽排序">::</span>
                   <span class="text-sm">${t.icon}</span>
                   <span class="text-sm text-gray-200">${t.label}</span>
                   <span class="text-[11px] text-gray-500">${key}</span>
@@ -195,6 +199,131 @@ const Settings = {
         </ul>
       </div>
     `;
+  },
+
+  // ── Drag & drop sorting ──
+
+  _bindSortables() {
+    const scope = document.getElementById('view-settings');
+    if (!scope) return;
+
+    scope.querySelectorAll('.settings-sortable').forEach(container => {
+      container.addEventListener('dragover', (e) => this._onDragOver(e));
+      container.addEventListener('drop', (e) => this._onDrop(e));
+    });
+
+    scope.querySelectorAll('.settings-drag-handle').forEach(handle => {
+      handle.setAttribute('draggable', 'true');
+      handle.addEventListener('dragstart', (e) => this._onDragStart(e));
+      handle.addEventListener('dragend', (e) => this._onDragEnd(e));
+    });
+  },
+
+  _onDragStart(e) {
+    const item = e.target.closest('.settings-sortable-item');
+    const container = item ? item.closest('.settings-sortable') : null;
+    if (!item || !container) return;
+
+    this._dragState = { item, container, type: container.dataset.sortType };
+    item.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.sortKey || '');
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'settings-sortable-placeholder';
+    placeholder.style.height = item.getBoundingClientRect().height + 'px';
+    this._dragPlaceholder = placeholder;
+  },
+
+  _onDragOver(e) {
+    if (!this._dragState) return;
+    const { container } = this._dragState;
+    if (e.currentTarget !== container) return;
+
+    e.preventDefault();
+    const afterElement = this._getDragAfterElement(container, e.clientY);
+    if (!this._dragPlaceholder) return;
+    if (afterElement == null) {
+      container.appendChild(this._dragPlaceholder);
+    } else if (afterElement !== this._dragPlaceholder) {
+      container.insertBefore(this._dragPlaceholder, afterElement);
+    }
+  },
+
+  _onDrop(e) {
+    if (!this._dragState) return;
+    const { item, container, type } = this._dragState;
+    if (e.currentTarget !== container) return;
+
+    e.preventDefault();
+    if (this._dragPlaceholder && this._dragPlaceholder.parentNode === container) {
+      container.insertBefore(item, this._dragPlaceholder);
+      this._dragPlaceholder.remove();
+    }
+
+    this._saveSortOrder(type, container);
+  },
+
+  _onDragEnd() {
+    if (this._dragState?.item) this._dragState.item.classList.remove('dragging');
+    if (this._dragPlaceholder) this._dragPlaceholder.remove();
+    this._dragState = null;
+    this._dragPlaceholder = null;
+  },
+
+  _getDragAfterElement(container, y) {
+    const elements = [...container.querySelectorAll('.settings-sortable-item:not(.dragging)')];
+    let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+    for (const el of elements) {
+      const box = el.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        closest = { offset, element: el };
+      }
+    }
+    return closest.element;
+  },
+
+  async _saveSortOrder(type, container) {
+    const keys = [...container.querySelectorAll('.settings-sortable-item')].map(el => el.dataset.sortKey);
+    try {
+      if (type === 'tags') {
+        const order = keys.map(k => parseInt(k, 10)).filter(n => !Number.isNaN(n));
+        await API.saveTagOrder(order);
+        this.tags = this._reorderTags(this.tags, order);
+      } else if (type === 'categories') {
+        Utils.categories = Utils.orderObject(Utils.categories, keys);
+        await API.saveCategoryOrder(keys);
+      } else if (type === 'interaction-types') {
+        Utils.interactionTypes = Utils.orderObject(Utils.interactionTypes, keys);
+        await API.saveInteractionTypeOrder(keys);
+      }
+      this._syncSelectionUIs(type);
+    } catch (err) {
+      Utils.toast(err.message || '排序保存失败', 'error');
+    }
+  },
+
+  _reorderTags(tags, order) {
+    const index = new Map(order.map((id, i) => [id, i]));
+    return [...tags].sort((a, b) => {
+      const ai = index.has(a.id) ? index.get(a.id) : Number.POSITIVE_INFINITY;
+      const bi = index.has(b.id) ? index.get(b.id) : Number.POSITIVE_INFINITY;
+      if (ai !== bi) return ai - bi;
+      return (b.contact_count || 0) - (a.contact_count || 0);
+    });
+  },
+
+  _syncSelectionUIs(type) {
+    if ((type === 'categories' || type === 'tags') && typeof Contacts !== 'undefined') {
+      const view = document.getElementById('view-contacts');
+      if (view) {
+        Contacts.loadTags?.().then(() => Contacts.render()).catch(() => {});
+      }
+    }
+    if (type === 'interaction-types' && typeof Timeline !== 'undefined') {
+      if (document.getElementById('view-timeline')) Timeline.render();
+    }
   },
 
   // ── Tag CRUD ──

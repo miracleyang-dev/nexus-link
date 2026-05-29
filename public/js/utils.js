@@ -79,6 +79,9 @@ const API = {
   clearAllData() { return this.request('DELETE', '/settings/clear-all'); },
   saveCustomCategories(categories) { return this.request('PUT', '/settings/custom-categories', { categories }); },
   saveCustomInteractionTypes(types) { return this.request('PUT', '/settings/custom-interaction-types', { types }); },
+  saveCategoryOrder(order) { return this.request('PUT', '/settings/custom-category-order', { order }); },
+  saveInteractionTypeOrder(order) { return this.request('PUT', '/settings/custom-interaction-type-order', { order }); },
+  saveTagOrder(order) { return this.request('PUT', '/settings/tag-order', { order }); },
 
   // Online Pings
   getPings(days = 7) { return this.request('GET', `/pings?days=${days}`); },
@@ -129,8 +132,14 @@ const Utils = {
       if (settings.custom_categories && typeof settings.custom_categories === 'object') {
         this.categories = settings.custom_categories;
       }
+      if (Array.isArray(settings.custom_category_order)) {
+        this.categories = this.orderObject(this.categories, settings.custom_category_order);
+      }
       if (settings.custom_interaction_types && typeof settings.custom_interaction_types === 'object') {
         this.interactionTypes = settings.custom_interaction_types;
+      }
+      if (Array.isArray(settings.custom_interaction_type_order)) {
+        this.interactionTypes = this.orderObject(this.interactionTypes, settings.custom_interaction_type_order);
       }
     } catch { /* use defaults */ }
   },
@@ -159,6 +168,18 @@ const Utils = {
   progressBadge(progress) {
     const cfg = this.progressConfig[progress] || this.progressConfig.learning;
     return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style="background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}25">${cfg.icon} ${cfg.label}</span>`;
+  },
+
+  // Rebuild an object based on key order
+  orderObject(obj, order) {
+    const ordered = {};
+    order.forEach(key => {
+      if (obj && Object.prototype.hasOwnProperty.call(obj, key)) ordered[key] = obj[key];
+    });
+    Object.keys(obj || {}).forEach(key => {
+      if (!Object.prototype.hasOwnProperty.call(ordered, key)) ordered[key] = obj[key];
+    });
+    return ordered;
   },
 
   // Generate avatar color from name (memoized)

@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
     const rows = db.prepare('SELECT key, value FROM settings').all();
     const settings = {};
     for (const r of rows) {
-      if (r.key === 'custom_categories' || r.key === 'custom_interaction_types') {
+      if (r.key === 'custom_categories' || r.key === 'custom_interaction_types' || r.key === 'tag_order' || r.key === 'custom_category_order' || r.key === 'custom_interaction_type_order') {
         try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; }
       } else {
         settings[r.key] = r.value;
@@ -51,6 +51,60 @@ router.put('/custom-interaction-types', (req, res) => {
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
     `).run(value);
     res.json({ message: '互动类型配置已保存', types });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/settings/tag-order - save tag order array
+router.put('/tag-order', (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: '无效的标签排序' });
+    }
+    const value = JSON.stringify(order);
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('tag_order', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).run(value);
+    res.json({ message: '标签排序已保存', order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/settings/custom-category-order - save category order array
+router.put('/custom-category-order', (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: '无效的分类排序' });
+    }
+    const value = JSON.stringify(order);
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('custom_category_order', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).run(value);
+    res.json({ message: '分类排序已保存', order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/settings/custom-interaction-type-order - save interaction type order array
+router.put('/custom-interaction-type-order', (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: '无效的互动类型排序' });
+    }
+    const value = JSON.stringify(order);
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('custom_interaction_type_order', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).run(value);
+    res.json({ message: '互动类型排序已保存', order });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

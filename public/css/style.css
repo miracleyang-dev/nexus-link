@@ -93,6 +93,22 @@
   transition: all 0.2s;
 }
 
+/* Settings drag sorting */
+.settings-sortable-item.dragging { opacity: 0.6; }
+.settings-sortable-placeholder {
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.settings-drag-handle {
+  cursor: grab;
+  color: #6b7280;
+  font-weight: 700;
+  letter-spacing: 1px;
+  user-select: none;
+}
+.settings-drag-handle:active { cursor: grabbing; }
+
 /* Timeline */
 .timeline-line {
   position: absolute;

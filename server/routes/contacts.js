@@ -281,8 +281,29 @@ tagsRouter.get('/', (req, res) => {
       FROM tags t
       LEFT JOIN contact_tags ct ON t.id = ct.tag_id
       GROUP BY t.id
-      ORDER BY contact_count DESC
     `).all();
+
+    let order = [];
+    const orderRow = db.prepare("SELECT value FROM settings WHERE key = 'tag_order'").get();
+    if (orderRow && orderRow.value) {
+      try { order = JSON.parse(orderRow.value); } catch { order = []; }
+    }
+
+    if (Array.isArray(order) && order.length) {
+      const index = new Map(order.map((id, i) => [Number(id), i]));
+      tags.sort((a, b) => {
+        const ai = index.has(a.id) ? index.get(a.id) : Number.POSITIVE_INFINITY;
+        const bi = index.has(b.id) ? index.get(b.id) : Number.POSITIVE_INFINITY;
+        if (ai !== bi) return ai - bi;
+        if ((a.contact_count || 0) !== (b.contact_count || 0)) return (b.contact_count || 0) - (a.contact_count || 0);
+        return String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+      });
+    } else {
+      tags.sort((a, b) => {
+        if ((a.contact_count || 0) !== (b.contact_count || 0)) return (b.contact_count || 0) - (a.contact_count || 0);
+        return String(a.name).localeCompare(String(b.name), 'zh-Hans-CN');
+      });
+    }
     res.json(tags);
   } catch (err) {
     res.status(500).json({ error: err.message });

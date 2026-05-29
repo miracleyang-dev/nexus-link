@@ -102,7 +102,6 @@ const Contacts = {
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="font-semibold text-white truncate">${c.name}</h3>
-              ${c.category === 'family' ? '<span class="text-red-500 text-xs">★</span>' : ''}
               ${Utils.categoryBadge(c.category)}
             </div>
             <p class="text-xs text-gray-400 truncate">${[c.company, c.position].filter(Boolean).join(' · ') || '暂无职位信息'}</p>
