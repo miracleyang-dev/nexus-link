@@ -10,8 +10,12 @@ const Settings = {
   ],
 
   async init() {
-    this.settings = await API.getSettings();
-    this.tags = await API.getTags();
+    const [settings, tags] = await Promise.all([
+      API.getSettings(),
+      API.getTags(),
+    ]);
+    this.settings = settings;
+    this.tags = tags;
     this.render();
   },
 

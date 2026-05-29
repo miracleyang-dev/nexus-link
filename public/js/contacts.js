@@ -5,8 +5,10 @@ const Contacts = {
   currentFilter: { search: '', category: '', tag: '' },
 
   async init() {
-    await this.loadTags();
-    await this.loadContacts();
+    await Promise.all([
+      this.loadTags(),
+      this.loadContacts(),
+    ]);
     this.render();
   },
 
@@ -16,6 +18,18 @@ const Contacts = {
     if (this.currentFilter.category) params.category = this.currentFilter.category;
     if (this.currentFilter.tag) params.tag = this.currentFilter.tag;
     this.contacts = await API.getContacts(params);
+    this.sortContacts();
+  },
+
+  sortContacts() {
+    this.contacts.sort((a, b) => {
+      const levelDiff = (b.relationship_level || 0) - (a.relationship_level || 0);
+      if (levelDiff !== 0) return levelDiff;
+      const aTime = a.last_interaction || a.updated_at || '';
+      const bTime = b.last_interaction || b.updated_at || '';
+      if (aTime !== bTime) return String(bTime).localeCompare(String(aTime));
+      return (b.id || 0) - (a.id || 0);
+    });
   },
 
   async loadTags() {
@@ -399,7 +413,7 @@ const Contacts = {
             <div class="flex flex-wrap gap-2">
               ${Contacts.tags.map(t => {
                 const checked = (c.tags || []).some(ct => ct.id === t.id);
-                return `<label class="tag-pill cursor-pointer" style="color:${t.color};border-color:${checked ? t.color : t.color+'40'};background:${checked ? t.color+'30' : t.color+'15'}">
+                return `<label class="tag-pill cursor-pointer contact-tag-pill" data-color="${t.color}">
                   <input type="checkbox" name="tags" value="${t.id}" ${checked ? 'checked' : ''} class="hidden"> ${t.name}
                 </label>`;
               }).join('')}
@@ -418,6 +432,23 @@ const Contacts = {
     if (c.birthday) {
       this.updateBirthdayConversion(c.birthday, c.birthday_type || 'solar');
     }
+    this.bindTagPills();
+  },
+
+  bindTagPills() {
+    const pills = document.querySelectorAll('#contact-form .contact-tag-pill');
+    pills.forEach(pill => {
+      const input = pill.querySelector('input[name="tags"]');
+      if (!input) return;
+      const applyStyle = () => {
+        const color = pill.dataset.color || '#6b7280';
+        pill.style.color = color;
+        pill.style.borderColor = input.checked ? color : color + '40';
+        pill.style.background = input.checked ? color + '30' : color + '15';
+      };
+      input.addEventListener('change', applyStyle);
+      applyStyle();
+    });
   },
 
   // Contact method row HTML

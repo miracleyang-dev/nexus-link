@@ -27,8 +27,14 @@ router.get('/', (req, res) => {
   try {
     const { search, category, tag } = req.query;
     let query = `
-      SELECT c.*, GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tag_list
+      SELECT c.*, li.last_interaction, GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tag_list
       FROM contacts c
+      LEFT JOIN (
+        SELECT ic.contact_id, MAX(i.date) AS last_interaction
+        FROM interaction_contacts ic
+        JOIN interactions i ON i.id = ic.interaction_id
+        GROUP BY ic.contact_id
+      ) li ON li.contact_id = c.id
       LEFT JOIN contact_tags ct ON c.id = ct.contact_id
       LEFT JOIN tags t ON ct.tag_id = t.id
     `;
@@ -52,7 +58,7 @@ router.get('/', (req, res) => {
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
-    query += ' GROUP BY c.id ORDER BY c.updated_at DESC';
+    query += ' GROUP BY c.id ORDER BY c.relationship_level DESC, li.last_interaction DESC, c.updated_at DESC';
 
     const contacts = db.prepare(query).all(...params);
 
