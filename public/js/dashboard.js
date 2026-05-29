@@ -138,7 +138,7 @@ const Dashboard = {
                     <p class="text-xs text-gray-200 truncate">${d.name}</p>
                     <p class="text-[10px] text-gray-500">上次: ${Utils.relativeTime(d.last_interaction)}</p>
                   </div>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${levelColor}15;color:${levelColor}">
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${levelColor}15;color:${d.category === 'family' ? '#ef4444' : levelColor}">
                     ${'★'.repeat(d.relationship_level)}
                   </span>
                 </div>`;

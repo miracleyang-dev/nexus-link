@@ -94,27 +94,30 @@ const Contacts = {
 
   cardHTML(c) {
     const tags = c.tags || [];
+    const strengthsPreview = (c.strengths_list || c.strengths_preview || []).map(s => s.content || s).filter(Boolean).join(', ');
     return `
       <div class="contact-card p-4" onclick="Contacts.showDetail(${c.id})">
         <div class="flex items-start gap-3">
-          ${Utils.avatarHTML(c.name, 44)}
+          ${Utils.avatarHTML(c.name, 44, c.avatar_url)}
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="font-semibold text-white truncate">${c.name}</h3>
+              ${c.category === 'family' ? '<span class="text-red-500 text-xs">★</span>' : ''}
               ${Utils.categoryBadge(c.category)}
             </div>
             <p class="text-xs text-gray-400 truncate">${[c.company, c.position].filter(Boolean).join(' · ') || '暂无职位信息'}</p>
           </div>
           <div class="shrink-0">${Utils.levelDots(c.relationship_level)}</div>
         </div>
-        ${c.personality_traits ? `<p class="text-xs text-gray-500 mt-3 truncate">✦ ${c.personality_traits}</p>` : ''}
+        ${strengthsPreview ? `<p class="text-xs text-gray-500 mt-3 truncate">💪 ${strengthsPreview}</p>` : ''}
+        ${c.notes ? `<p class="text-xs text-gray-600 mt-1 truncate">📝 ${c.notes}</p>` : ''}
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mt-3">${tags.slice(0, 3).map(t => Utils.tagPill(t)).join('')}${tags.length > 3 ? `<span class="text-[10px] text-gray-500 self-center">+${tags.length - 3}</span>` : ''}</div>` : ''}
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
           <div class="flex items-center gap-3 text-[11px] text-gray-500">
             ${c.mbti ? `<span class="font-mono" style="color:${Utils.mbtiColor(c.mbti)}">${c.mbti}</span>` : ''}
             ${c.zodiac ? `<span>${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : ''}
           </div>
-          ${c.birthday ? `<span class="text-[11px] text-gray-500">🎂 ${c.birthday.slice(5)}${c.birthday_type === 'lunar' ? ' (农)' : ''}</span>` : ''}
+          ${c.birthday ? `<span class="text-[11px] text-gray-500">🎂 ${c.birthday_type === 'lunar' ? Utils.lunarDateLabel(c.birthday) : c.birthday.slice(5)}</span>` : ''}
         </div>
       </div>
     `;
@@ -155,7 +158,7 @@ const Contacts = {
         <!-- Header -->
         <div class="flex items-start justify-between mb-6">
           <div class="flex items-center gap-4">
-            ${Utils.avatarHTML(c.name, 56)}
+            ${Utils.avatarHTML(c.name, 56, c.avatar_url)}
             <div>
               <h2 class="text-xl font-bold text-white">${c.name}</h2>
               <p class="text-sm text-gray-400">${[c.company, c.position].filter(Boolean).join(' · ') || ''}</p>
@@ -188,17 +191,11 @@ const Contacts = {
         <!-- Info Grid -->
         <div class="grid grid-cols-2 gap-4 mb-6">
           ${c.birthday ? (() => {
-            const typeLabel = c.birthday_type === 'lunar' ? '农历' : '公历';
-            let birthdayHtml = `${c.birthday} (${typeLabel})`;
-            if (c.birthday_type === 'lunar') {
-              const conv = Utils.lunarToSolar(c.birthday);
-              if (conv) birthdayHtml += `<br><span class="text-gray-500 text-[11px]">公历: ${conv.solar}</span>`;
-            } else {
-              const conv = Utils.solarToLunar(c.birthday);
-              if (conv) birthdayHtml += `<br><span class="text-gray-500 text-[11px]">农历: ${conv.lunarChinese}</span>`;
-            }
-            if (c.zodiac) birthdayHtml += ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>`;
-            return this.detailField('生日', birthdayHtml, '🎂');
+            const solarBirthday = c.birthday_type === 'lunar'
+              ? (Utils.lunarToSolar(c.birthday)?.solar || '--')
+              : Utils.formatDate(c.birthday);
+            const zodiacText = c.zodiac ? ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : '';
+            return this.detailField('生日', `${solarBirthday}${zodiacText}`, '🎂');
           })() : ''}
           ${this.detailField('MBTI', c.mbti, '🧠')}
           ${this.detailField('家乡', c.hometown, '🏠')}
@@ -209,7 +206,7 @@ const Contacts = {
         <!-- Structured Strengths -->
         <div class="detail-section">
           <div class="flex items-center justify-between mb-3">
-            <div class="detail-label">💪 个人长处</div>
+            <div class="detail-label">💪 个人优点</div>
           </div>
           ${(c.strengths_list || []).length ? `
             <div class="space-y-2">
@@ -293,6 +290,26 @@ const Contacts = {
       <div class="p-6">
         <h2 class="text-lg font-bold text-white mb-6">${title}</h2>
         <form id="contact-form" onsubmit="Contacts.saveContact(event, ${c.id || 'null'})" class="space-y-4">
+          <!-- Avatar Drop Zone -->
+          <div class="flex items-center gap-4 mb-2">
+            <div id="avatar-drop-zone" class="relative cursor-pointer shrink-0"
+              ondragover="event.preventDefault();this.classList.add('ring-2','ring-neon-blue')"
+              ondragleave="this.classList.remove('ring-2','ring-neon-blue')"
+              ondrop="Contacts.onAvatarDrop(event)"
+              onclick="document.getElementById('avatar-file-input').click()"
+              style="border-radius:50%">
+              ${c.avatar_url
+                ? `<div class="avatar" style="width:56px;height:56px;overflow:hidden"><img src="${c.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`
+                : Utils.avatarHTML(c.name || '?', 56)}
+              <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+                <span class="text-white text-[10px]">拖拽/点击</span>
+              </div>
+            </div>
+            <input type="file" id="avatar-file-input" accept="image/*" class="hidden" onchange="Contacts.onAvatarFileSelect(event)">
+            <input type="hidden" name="avatar_url" value="${c.avatar_url || ''}">
+            <div class="text-xs text-gray-500">拖拽或点击头像更换<br>支持 JPG/PNG 格式</div>
+          </div>
+
           <!-- Basic Info -->
           <div class="grid grid-cols-2 gap-4">
             <div><label class="detail-label block mb-1">姓名 *</label><input name="name" class="form-input" required value="${c.name || ''}"></div>
@@ -318,11 +335,11 @@ const Contacts = {
 
           <!-- Birthday with calendar type -->
           <div class="grid grid-cols-3 gap-4">
-            <div class="col-span-2"><label class="detail-label block mb-1">生日 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="birthday" class="form-input" type="date" value="${c.birthday || ''}" onchange="Contacts.onBirthdayChange(this)"></div>
-            <div><label class="detail-label block mb-1">历法</label>
+            <div class="col-span-2"><label class="detail-label block mb-1">生日 <span class="text-gray-600 text-[10px]">(公历输入)</span></label><input name="birthday" class="form-input" type="date" value="${c.birthday || ''}" onchange="Contacts.onBirthdayChange(this)"></div>
+            <div><label class="detail-label block mb-1">提醒模式</label>
               <select name="birthday_type" class="form-input" onchange="Contacts.onBirthdayTypeChange(this)">
-                <option value="solar" ${(c.birthday_type || 'solar') === 'solar' ? 'selected' : ''}>公历</option>
-                <option value="lunar" ${c.birthday_type === 'lunar' ? 'selected' : ''}>农历</option>
+                <option value="solar" ${(c.birthday_type || 'solar') === 'solar' ? 'selected' : ''}>按公历提醒</option>
+                <option value="lunar" ${c.birthday_type === 'lunar' ? 'selected' : ''}>按农历提醒</option>
               </select>
             </div>
           </div>
@@ -356,8 +373,8 @@ const Contacts = {
 
           <div class="border border-white/5 rounded-lg p-4">
             <div class="flex items-center justify-between mb-3">
-              <label class="detail-label">💪 个人长处 <span class="text-gray-600 text-[10px]">(选填，支持评级与进度)</span></label>
-              <button type="button" onclick="Contacts.addStrengthRow()" class="text-xs text-neon-blue hover:underline">+ 添加长处</button>
+              <label class="detail-label">💪 个人优点 <span class="text-gray-600 text-[10px]">(选填，支持评级与进度)</span></label>
+              <button type="button" onclick="Contacts.addStrengthRow()" class="text-xs text-neon-blue hover:underline">+ 添加优点</button>
             </div>
             <div id="strengths-list" class="space-y-2">
               ${strengthsList.map(s => Contacts._strengthRowHTML(s.id, s.content, s.rating, s.progress)).join('')}
@@ -422,15 +439,20 @@ const Contacts = {
     progress = progress || 'learning';
     const dataId = id ? `data-strength-id="${id}"` : '';
     return `
-      <div class="strength-row flex items-center gap-2" ${dataId}>
-        <input class="form-input flex-1" value="${content}" placeholder="如：沟通能力强" maxlength="30" data-strength-content>
-        <select class="form-input w-24 text-xs" data-strength-rating>
-          ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
-        </select>
-        <select class="form-input w-28 text-xs" data-strength-progress>
-          ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
-        </select>
-        <button type="button" onclick="this.closest('.strength-row').remove()" class="text-gray-500 hover:text-red-400 text-sm px-1">✕</button>
+      <div class="strength-row" ${dataId}>
+        <div class="flex items-center gap-2">
+          <input class="form-input flex-1" value="${content}" placeholder="如：沟通能力强" maxlength="30" data-strength-content>
+          <button type="button" onclick="this.closest('.strength-row').remove()" class="text-gray-500 hover:text-red-400 text-sm px-1 shrink-0">✕</button>
+        </div>
+        <div class="strength-extra hidden md:flex items-center gap-2 mt-2">
+          <select class="form-input w-24 text-xs" data-strength-rating>
+            ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
+          </select>
+          <select class="form-input w-28 text-xs" data-strength-progress>
+            ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+          </select>
+        </div>
+        <button type="button" class="md:hidden text-[11px] text-neon-blue mt-1" onclick="this.previousElementSibling.classList.toggle('hidden');this.textContent=this.previousElementSibling.classList.contains('hidden')?'展开评级 ▸':'收起 ▴'">展开评级 ▸</button>
       </div>
     `;
   },
@@ -622,6 +644,36 @@ const Contacts = {
     } catch (err) {
       Utils.toast(err.message, 'error');
     }
+  },
+
+  // ── Avatar drag & drop / file select ──
+  onAvatarDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('ring-2', 'ring-neon-blue');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) this._processAvatarFile(file);
+  },
+
+  onAvatarFileSelect(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) this._processAvatarFile(file);
+  },
+
+  _processAvatarFile(file) {
+    if (file.size > 2 * 1024 * 1024) { Utils.toast('图片不能超过 2MB', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      // Update preview
+      const zone = document.getElementById('avatar-drop-zone');
+      if (zone) {
+        zone.querySelector('.avatar').outerHTML = `<div class="avatar" style="width:56px;height:56px;overflow:hidden"><img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+      }
+      // Update hidden input
+      const input = document.querySelector('input[name="avatar_url"]');
+      if (input) input.value = dataUrl;
+    };
+    reader.readAsDataURL(file);
   },
 
   // ── Strengths (managed via contact edit form) ──

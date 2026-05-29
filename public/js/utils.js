@@ -177,19 +177,22 @@ const Utils = {
     return color;
   },
 
-  // Create avatar HTML
-  avatarHTML(name, size = 40) {
+  // Create avatar HTML (supports custom avatar_url)
+  avatarHTML(name, size = 40, avatarUrl = null) {
+    if (avatarUrl) {
+      return `<div class="avatar" style="width:${size}px;height:${size}px;overflow:hidden"><img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+    }
     const [bg1, bg2] = this.avatarColor(name);
     const initial = name.charAt(0);
     const fontSize = Math.round(size * 0.4);
     return `<div class="avatar" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${bg1},${bg2});font-size:${fontSize}px;color:white">${initial}</div>`;
   },
 
-  // Relationship level dots
+  // Relationship level stars (gold)
   levelDots(level) {
-    let html = '<div class="flex gap-1">';
+    let html = '<div class="flex gap-0.5">';
     for (let i = 1; i <= 5; i++) {
-      html += `<div class="rel-dot ${i <= level ? 'active' : 'inactive'}"></div>`;
+      html += `<span class="rel-star ${i <= level ? 'active' : 'inactive'}">★</span>`;
     }
     html += '</div>';
     return html;
@@ -301,6 +304,36 @@ const Utils = {
       s.onerror = reject;
       document.head.appendChild(s);
     });
+  },
+
+  // Get lunar label for a solar date string (for birthday_type=lunar, the stored date IS the lunar date)
+  solarToLunarLabel(dateStr) {
+    try {
+      if (typeof LunarJS === 'undefined') return dateStr.slice(5) + ' (农)';
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const lunar = LunarJS.Lunar.fromYmd(y, m, d);
+      return `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
+    } catch { return dateStr.slice(5) + ' (农)'; }
+  },
+
+  // Format lunar date with traditional naming, e.g. 六月初三、腊月十七
+  lunarDateLabel(dateStr) {
+    const parts = (dateStr || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return '--';
+    const monthNum = parts[1];
+    const dayNum = parts[2];
+    const monthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
+    const monthName = monthNames[monthNum - 1];
+    if (!monthName) return '--';
+    const dayLabel = (() => {
+      if (dayNum <= 0 || dayNum > 30) return '';
+      if (dayNum <= 10) return `初${['一','二','三','四','五','六','七','八','九','十'][dayNum - 1]}`;
+      if (dayNum < 20) return `十${['一','二','三','四','五','六','七','八','九'][dayNum - 11]}`;
+      if (dayNum === 20) return '二十';
+      if (dayNum < 30) return `廿${['一','二','三','四','五','六','七','八','九'][dayNum - 21]}`;
+      return '三十';
+    })();
+    return dayLabel ? `${monthName}月${dayLabel}` : '--';
   },
 
   // Lunar calendar conversion (client-side using LunarJS)

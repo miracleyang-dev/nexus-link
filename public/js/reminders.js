@@ -101,16 +101,14 @@ const Reminders = {
     else if (days > 7) { daysText = `还有 ${days} 天`; urgencyClass = 'text-gray-400'; }
     else { daysText = `已过 ${Math.abs(days)} 天`; urgencyClass = 'text-gray-500'; }
 
+    const dateDisplay = Utils.formatDate(r.remind_date);
+
     return `
       <div class="glass-card p-4 flex items-center gap-4">
         <div class="type-icon text-lg" style="background:rgba(236,72,153,0.15)">🎂</div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-white">${r.title}</p>
-          <p class="text-xs text-gray-400">
-            ${Utils.formatDate(r.remind_date)}
-            ${r.description ? ` · ${r.description}` : ''}
-            ${r.contact_name ? ` · ${r.contact_name}` : ''}
-          </p>
+          <p class="text-xs text-gray-400">${dateDisplay}</p>
         </div>
         <span class="text-xs ${urgencyClass} shrink-0">${daysText}</span>
       </div>

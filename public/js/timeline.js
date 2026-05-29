@@ -37,8 +37,8 @@ const Timeline = {
 
         <!-- Tab Switch -->
         <div class="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 mb-6 w-fit">
-          <button onclick="Timeline.switchTab('interactions')" class="text-xs px-4 py-1.5 rounded-md transition-all ${this.activeTab === 'interactions' ? 'bg-neon-blue/20 text-neon-blue font-medium' : 'text-gray-500 hover:text-gray-300'}">互动记录</button>
-          <button onclick="Timeline.switchTab('pings')" class="text-xs px-4 py-1.5 rounded-md transition-all ${this.activeTab === 'pings' ? 'bg-neon-blue/20 text-neon-blue font-medium' : 'text-gray-500 hover:text-gray-300'}">线上互动</button>
+          <button onclick="Timeline.switchTab('interactions')" class="text-xs px-4 py-1.5 rounded-md transition-all ${this.activeTab === 'interactions' ? 'bg-neon-blue/20 text-neon-blue font-medium' : 'text-gray-500 hover:text-gray-300'}">记录</button>
+          <button onclick="Timeline.switchTab('pings')" class="text-xs px-4 py-1.5 rounded-md transition-all ${this.activeTab === 'pings' ? 'bg-neon-blue/20 text-neon-blue font-medium' : 'text-gray-500 hover:text-gray-300'}">线上浅社交</button>
         </div>
 
         <div id="timeline-content"></div>
@@ -164,7 +164,7 @@ const Timeline = {
     const unpinged = this.contacts.filter(c => !todayPingedIds.includes(c.id));
 
     el.innerHTML = `
-      <p class="text-xs text-gray-500 mb-4">将联系人拖入今日区域，标记线上互动。每人每天仅记录一次。</p>
+      <p class="text-xs text-gray-500 mb-4">将联系人拖入今日区域，标记线上浅社交。每人每天仅记录一次。</p>
 
       <!-- Today's drop zone -->
       <div class="mb-6">

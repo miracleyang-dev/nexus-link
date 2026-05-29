@@ -76,10 +76,10 @@
   opacity: 0.5;
 }
 
-/* Relationship level dots */
-.rel-dot { width: 6px; height: 6px; border-radius: 50%; }
-.rel-dot.active { background: #00d4ff; box-shadow: 0 0 6px #00d4ff; }
-.rel-dot.inactive { background: rgba(255,255,255,0.1); }
+/* Relationship level stars */
+.rel-star { font-size: 10px; line-height: 1; }
+.rel-star.active { color: #f59e0b; text-shadow: 0 0 4px rgba(245,158,11,0.4); }
+.rel-star.inactive { color: rgba(255,255,255,0.1); }
 
 /* Tag pill */
 .tag-pill {

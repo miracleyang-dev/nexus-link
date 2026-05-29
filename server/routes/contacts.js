@@ -56,16 +56,23 @@ router.get('/', (req, res) => {
 
     const contacts = db.prepare(query).all(...params);
 
-    const result = contacts.map(c => ({
-      ...c,
-      tags: c.tag_list
-        ? c.tag_list.split(',').map(t => {
-            const [id, name, color] = t.split(':');
-            return { id: Number(id), name, color };
-          })
-        : [],
-      tag_list: undefined
-    }));
+    const result = contacts.map(c => {
+      // Fetch strengths preview for card display
+      const strengths = db.prepare(
+        'SELECT content FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC LIMIT 2'
+      ).all(c.id);
+      return {
+        ...c,
+        strengths_preview: strengths,
+        tags: c.tag_list
+          ? c.tag_list.split(',').map(t => {
+              const [id, name, color] = t.split(':');
+              return { id: Number(id), name, color };
+            })
+          : [],
+        tag_list: undefined
+      };
+    });
 
     res.json(result);
   } catch (err) {
