@@ -59,7 +59,7 @@ router.get('/', (req, res) => {
     const result = contacts.map(c => {
       // Fetch strengths preview for card display
       const strengths = db.prepare(
-        'SELECT content FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC LIMIT 2'
+        'SELECT content, rating FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC LIMIT 2'
       ).all(c.id);
       return {
         ...c,

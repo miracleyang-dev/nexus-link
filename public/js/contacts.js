@@ -94,7 +94,12 @@ const Contacts = {
 
   cardHTML(c) {
     const tags = c.tags || [];
-    const strengthsPreview = (c.strengths_list || c.strengths_preview || []).map(s => s.content || s).filter(Boolean).join(', ');
+    const strengthsPreview = (c.strengths_list || c.strengths_preview || [])
+      .map(s => ({
+        content: (s && s.content) || s,
+        rating: s && typeof s.rating === 'number' ? s.rating : 0,
+      }))
+      .filter(s => s.content);
     return `
       <div class="contact-card p-4" onclick="Contacts.showDetail(${c.id})">
         <div class="flex items-start gap-3">
@@ -108,8 +113,16 @@ const Contacts = {
           </div>
           <div class="shrink-0">${Utils.levelDots(c.relationship_level)}</div>
         </div>
-        ${strengthsPreview ? `<p class="text-xs text-gray-500 mt-3 truncate">💪 ${strengthsPreview}</p>` : ''}
-        ${c.notes ? `<p class="text-xs text-gray-600 mt-1 truncate">📝 ${c.notes}</p>` : ''}
+        ${strengthsPreview.length ? `
+          <div class="mt-3 space-y-1.5">
+            ${strengthsPreview.map(s => `
+              <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                <span class="truncate">💪 ${s.content}</span>
+                <span class="text-[11px] text-amber-400 shrink-0">${Math.max(0, Math.min(5, s.rating))}★</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mt-3">${tags.slice(0, 3).map(t => Utils.tagPill(t)).join('')}${tags.length > 3 ? `<span class="text-[10px] text-gray-500 self-center">+${tags.length - 3}</span>` : ''}</div>` : ''}
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
           <div class="flex items-center gap-3 text-[11px] text-gray-500">

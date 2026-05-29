@@ -2,6 +2,12 @@
 const Settings = {
   settings: {},
   tags: [],
+  emojiOptions: [
+    '👋','❤️','💼','🤝','📌','📂','🏷️','💬','🎯','📣','🧩','🧠','🧪','🛠️','🧭',
+    '📍','🏠','🏢','🧑‍💻','🧑‍🎨','🧑‍🏫','🧑‍⚕️','🧑‍🔬','🧑‍🚀','🧑‍💼','🧑‍🔧','🧑‍🍳','🧑‍⚖️','🧑‍🌾','🧑‍🚒',
+    '🎨','🎧','🎬','📷','🎮','🏀','🏸','⚽','🎸','🎹','🪩','📚','📝','🗂️','🗓️',
+    '🌟','✨','🔥','🌈','🌍','🌱','🌿','☕','🍵','🍽️','🍰','🎁','💡','🔗','🧷'
+  ],
 
   async init() {
     this.settings = await API.getSettings();
@@ -69,6 +75,18 @@ const Settings = {
         </div>
       </div>
     `;
+  },
+
+  _emojiDatalistHTML() {
+    return `
+      <datalist id="emoji-options">
+        ${this.emojiOptions.map(e => `<option value="${e}"></option>`).join('')}
+      </datalist>
+    `;
+  },
+
+  _emojiInputHTML(value = '') {
+    return `<input name="icon" class="form-input" list="emoji-options" value="${value}">`;
   },
 
   _renderCategoryManagement() {
@@ -383,7 +401,7 @@ const Settings = {
             <div><label class="detail-label block mb-1">显示名称 *</label><input name="label" class="form-input" required></div>
           </div>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="detail-label block mb-1">图标 (Emoji)</label><input name="icon" class="form-input"></div>
+            <div><label class="detail-label block mb-1">图标 (Emoji)</label>${this._emojiInputHTML('')}${this._emojiDatalistHTML()}</div>
             <div><label class="detail-label block mb-1">颜色</label><input name="color" class="form-input" type="color" value="#6b7280"></div>
           </div>
           <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -425,7 +443,7 @@ const Settings = {
             <div><label class="detail-label block mb-1">显示名称 *</label><input name="label" class="form-input" required value="${cat.label}"></div>
           </div>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="detail-label block mb-1">图标 (Emoji)</label><input name="icon" class="form-input" value="${cat.icon}"></div>
+            <div><label class="detail-label block mb-1">图标 (Emoji)</label>${this._emojiInputHTML(cat.icon)}${this._emojiDatalistHTML()}</div>
             <div><label class="detail-label block mb-1">颜色</label><input name="color" class="form-input" type="color" value="${cat.color}"></div>
           </div>
           <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -480,7 +498,7 @@ const Settings = {
             <div><label class="detail-label block mb-1">显示名称 *</label><input name="label" class="form-input" required></div>
           </div>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="detail-label block mb-1">图标 (Emoji)</label><input name="icon" class="form-input"></div>
+            <div><label class="detail-label block mb-1">图标 (Emoji)</label>${this._emojiInputHTML('')}${this._emojiDatalistHTML()}</div>
             <div><label class="detail-label block mb-1">颜色</label><input name="color" class="form-input" type="color" value="#6b7280"></div>
           </div>
           <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -521,7 +539,7 @@ const Settings = {
             <div><label class="detail-label block mb-1">显示名称 *</label><input name="label" class="form-input" required value="${t.label}"></div>
           </div>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="detail-label block mb-1">图标 (Emoji)</label><input name="icon" class="form-input" value="${t.icon}"></div>
+            <div><label class="detail-label block mb-1">图标 (Emoji)</label>${this._emojiInputHTML(t.icon)}${this._emojiDatalistHTML()}</div>
             <div><label class="detail-label block mb-1">颜色</label><input name="color" class="form-input" type="color" value="${t.color}"></div>
           </div>
           <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
