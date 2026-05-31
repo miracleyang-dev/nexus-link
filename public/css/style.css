@@ -378,6 +378,12 @@ select.form-input { appearance: none; cursor: pointer; }
   .toast { width: 100%; }
   /* Contact card grid single column */
   #contacts-grid { grid-template-columns: 1fr !important; }
+  /* Detail info grid stays 1-col on mobile (set in JS) */
+  .detail-info-grid { grid-template-columns: 1fr !important; }
+  /* Detail section text wrapping */
+  .detail-value { word-break: break-all; }
+  /* Strength row selects */
+  .strength-row select.form-input { font-size: 12px; padding: 8px 10px; }
   /* Graph min-height */
   #graph-container { min-height: 350px !important; }
   /* Stat cards 2 col */

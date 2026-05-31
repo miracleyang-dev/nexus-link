@@ -291,6 +291,7 @@ router.put('/record-start-date', (req, res) => {
     const purge = db.transaction(() => {
       const delInteractions = db.prepare('DELETE FROM interactions WHERE date < ?').run(date);
       const delReminders = db.prepare('DELETE FROM reminders WHERE remind_date < ?').run(date);
+      const delPings = db.prepare('DELETE FROM online_pings WHERE date < ?').run(date);
       db.prepare(`
         INSERT INTO settings (key, value, updated_at) VALUES ('record_start_date', ?, datetime('now'))
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
@@ -299,6 +300,7 @@ router.put('/record-start-date', (req, res) => {
       return {
         deleted_interactions: delInteractions.changes,
         deleted_reminders: delReminders.changes,
+        deleted_pings: delPings.changes,
       };
     });
 

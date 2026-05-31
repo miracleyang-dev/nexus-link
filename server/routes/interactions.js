@@ -158,6 +158,12 @@ pingsRouter.post('/', (req, res) => {
     const contact = db.prepare('SELECT id, name FROM contacts WHERE id = ?').get(contact_id);
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
+    // Check record start date
+    const startDateRow = db.prepare("SELECT value FROM settings WHERE key = 'record_start_date'").get();
+    if (startDateRow && date < startDateRow.value) {
+      return res.status(400).json({ error: `日期不能早于记录起始日期 (${startDateRow.value})` });
+    }
+
     db.prepare('INSERT OR IGNORE INTO online_pings (date, contact_id) VALUES (?, ?)').run(date, contact_id);
     res.status(201).json({ date, contact_id, contact_name: contact.name });
   } catch (err) {

@@ -183,7 +183,7 @@ const Settings = {
           <div class="type-icon shrink-0" style="background:rgba(245,158,11,0.1);color:#f59e0b;font-size:18px">⭐</div>
           <div class="flex-1 min-w-0">
             <h3 class="text-sm font-semibold text-white mb-1">亲密度星级含义</h3>
-            <p class="text-xs text-gray-500 mb-4">自定义 1~5 星各级别的文字说明，将显示在联系人卡片中</p>
+            <p class="text-xs text-gray-500 mb-4">自定义 1~5 星各级别的文字说明，仅在此处作为参考展示，不会显示在联系人卡片或详情中</p>
 
             <div class="space-y-2" id="star-labels-form">
               ${[1,2,3,4,5].map(i => `
@@ -238,7 +238,7 @@ const Settings = {
           <div class="type-icon shrink-0" style="background:rgba(0,212,255,0.1);color:#00d4ff;font-size:18px">📅</div>
           <div class="flex-1 min-w-0">
             <h3 class="text-sm font-semibold text-white mb-1">记录起始日期</h3>
-            <p class="text-xs text-gray-500 mb-4">设置后，系统仅保存该日期及之后的数据。该日期之前的互动记录、提醒将被永久删除。</p>
+            <p class="text-xs text-gray-500 mb-4">设置后，系统仅保存该日期及之后的互动记录与线上浅互动数据，提醒也将受限于此日期。该日期之前的互动记录、线上浅互动、提醒将被永久删除。联系人等其他数据不受影响。</p>
             ${startDate ? `
               <div class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-neon-blue/5 border border-neon-blue/15">
                 <span class="text-sm text-gray-300">当前起始日期：</span>
@@ -753,6 +753,7 @@ const Settings = {
           <p class="text-sm text-gray-300">将记录起始日期设为 <strong class="text-neon-blue">${date}</strong>，以下数据将被永久删除：</p>
           <ul class="text-sm text-gray-400 space-y-1.5 pl-4">
             <li>&#x2022; 日期早于 ${date} 的所有互动记录</li>
+            <li>&#x2022; 日期早于 ${date} 的所有线上浅互动记录</li>
             <li>&#x2022; 提醒日期早于 ${date} 的所有提醒</li>
           </ul>
           <div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -772,9 +773,9 @@ const Settings = {
       const result = await API.setRecordStartDate(date);
       Utils.closeModal();
       const p = result.purged || {};
-      const total = (p.deleted_interactions || 0) + (p.deleted_reminders || 0);
+      const total = (p.deleted_interactions || 0) + (p.deleted_reminders || 0) + (p.deleted_pings || 0);
       if (total > 0) {
-        Utils.toast(`已设置起始日期，清理了 ${p.deleted_interactions || 0} 条互动、${p.deleted_reminders || 0} 条提醒`);
+        Utils.toast(`已设置起始日期，清理了 ${p.deleted_interactions || 0} 条互动、${p.deleted_pings || 0} 条浅互动、${p.deleted_reminders || 0} 条提醒`);
       } else {
         Utils.toast('起始日期已设置，无需清理旧数据');
       }

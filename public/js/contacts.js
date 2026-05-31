@@ -186,23 +186,23 @@ const Contacts = {
     c.strengths_list = c.strengths || [];
 
     Utils.showModal(`
-      <div class="p-6">
+      <div class="p-4 sm:p-6">
         <!-- Header -->
-        <div class="flex items-start justify-between mb-6">
-          <div class="flex items-center gap-4">
-            ${Utils.avatarHTML(c.name, 56, c.avatar_url)}
-            <div>
-              <h2 class="text-xl font-bold text-white">${c.name}</h2>
-              <p class="text-sm text-gray-400">${[c.company, c.position].filter(Boolean).join(' · ') || ''}</p>
-              <div class="flex items-center gap-2 mt-1">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+            ${Utils.avatarHTML(c.name, 48, c.avatar_url)}
+            <div class="min-w-0">
+              <h2 class="text-lg sm:text-xl font-bold text-white truncate">${c.name}</h2>
+              <p class="text-xs sm:text-sm text-gray-400 truncate">${[c.company, c.position].filter(Boolean).join(' · ') || ''}</p>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
                 ${Utils.categoryBadge(c.category)}
                 ${Utils.levelDots(c.relationship_level)}
               </div>
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 shrink-0">
             <button onclick="Contacts.showEditModal(${c.id})" class="btn-ghost text-xs px-3 py-2">编辑</button>
-            <button onclick="Contacts.confirmDelete(${c.id},'${c.name}')" class="btn-danger text-xs px-3 py-2">删除</button>
+            <button onclick="Contacts.confirmDelete(${c.id},'${c.name.replace(/'/g, "\\'")}')" class="btn-danger text-xs px-3 py-2">删除</button>
           </div>
         </div>
 
@@ -221,13 +221,20 @@ const Contacts = {
         </div>` : ''}
 
         <!-- Info Grid -->
-        <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 detail-info-grid">
           ${c.birthday ? (() => {
-            const solarBirthday = c.birthday_type === 'lunar'
-              ? (Utils.lunarToSolar(c.birthday)?.solar || '--')
-              : Utils.formatDate(c.birthday);
+            let birthdayDisplay;
+            if (c.birthday_type === 'lunar') {
+              const lunarLabel = Utils.lunarDateLabel(c.birthday);
+              const solarConv = Utils.lunarToSolar(c.birthday);
+              birthdayDisplay = `农历 ${lunarLabel}` + (solarConv ? ` <span class="text-gray-500">(公历 ${solarConv.solar.slice(5)})</span>` : '');
+            } else {
+              const solarDisplay = c.birthday.slice(5);
+              const lunarConv = Utils.solarToLunar(c.birthday);
+              birthdayDisplay = `${solarDisplay}` + (lunarConv ? ` <span class="text-gray-500">(农历 ${lunarConv.lunarChinese})</span>` : '');
+            }
             const zodiacText = c.zodiac ? ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : '';
-            return this.detailField('生日', `${solarBirthday}${zodiacText}`, '🎂');
+            return this.detailField('生日', `${birthdayDisplay}${zodiacText}`, '🎂');
           })() : ''}
           ${this.detailField('MBTI', c.mbti, '🧠')}
           ${this.detailField('家乡', c.hometown, '🏠')}
@@ -488,20 +495,19 @@ const Contacts = {
     progress = progress || 'learning';
     const dataId = id ? `data-strength-id="${id}"` : '';
     return `
-      <div class="strength-row" ${dataId}>
+      <div class="strength-row p-3 rounded-xl bg-white/[0.02] border border-white/5" ${dataId}>
         <div class="flex items-center gap-2">
           <input class="form-input flex-1" value="${content}" placeholder="如：沟通能力强" maxlength="30" data-strength-content>
           <button type="button" onclick="this.closest('.strength-row').remove()" class="text-gray-500 hover:text-red-400 text-sm px-1 shrink-0">✕</button>
         </div>
-        <div class="strength-extra hidden md:flex items-center gap-2 mt-2">
-          <select class="form-input w-24 text-xs" data-strength-rating>
+        <div class="flex items-center gap-2 mt-2 flex-wrap">
+          <select class="form-input w-auto min-w-[100px] text-xs flex-1 sm:flex-none" data-strength-rating>
             ${[5,4,3,2,1].map(i => `<option value="${i}" ${i===rating?'selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
           </select>
-          <select class="form-input w-28 text-xs" data-strength-progress>
+          <select class="form-input w-auto min-w-[110px] text-xs flex-1 sm:flex-none" data-strength-progress>
             ${Object.entries(Utils.progressConfig).map(([k,v]) => `<option value="${k}" ${k===progress?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
           </select>
         </div>
-        <button type="button" class="md:hidden text-[11px] text-neon-blue mt-1" onclick="this.previousElementSibling.classList.toggle('hidden');this.textContent=this.previousElementSibling.classList.contains('hidden')?'展开评级 ▸':'收起 ▴'">展开评级 ▸</button>
       </div>
     `;
   },

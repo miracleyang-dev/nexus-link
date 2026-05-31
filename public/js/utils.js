@@ -218,14 +218,13 @@ const Utils = {
     return `<div class="avatar" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${bg1},${bg2});font-size:${fontSize}px;color:white">${initial}</div>`;
   },
 
-  // Relationship level stars (gold) with custom label tooltip
+  // Relationship level stars (gold) with custom label tooltip (label only shown as tooltip)
   levelDots(level) {
     const label = this.starLabels[level] || '';
     let html = `<div class="flex gap-0.5" title="${label}">`;
     for (let i = 1; i <= 5; i++) {
       html += `<span class="rel-star ${i <= level ? 'active' : 'inactive'}">★</span>`;
     }
-    if (label) html += `<span class="text-[9px] text-gray-500 ml-1 self-center">${label}</span>`;
     html += '</div>';
     return html;
   },
