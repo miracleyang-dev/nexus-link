@@ -128,7 +128,7 @@ pingsRouter.get('/', (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
     const pings = db.prepare(`
-      SELECT p.date, p.contact_id, c.name as contact_name, c.category
+      SELECT p.date, p.contact_id, c.name as contact_name, c.category, c.avatar_url
       FROM online_pings p
       JOIN contacts c ON p.contact_id = c.id
       WHERE p.date >= date('now', '-' || ? || ' days')

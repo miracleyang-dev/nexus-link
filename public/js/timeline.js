@@ -149,14 +149,14 @@ const Timeline = {
     const el = document.getElementById('timeline-content');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = Utils.localDateStr(today);
 
     // Build last 7 days
     const days = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      days.push(d.toISOString().split('T')[0]);
+      days.push(Utils.localDateStr(d));
     }
 
     // Contacts not yet pinged today
@@ -179,7 +179,7 @@ const Timeline = {
           ondrop="Timeline.onDrop(event, '${todayStr}')">
           ${(this.pings[todayStr] || []).map(p => `
             <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neon-green/10 border border-neon-green/20 group">
-              ${Utils.avatarHTML(p.contact_name, 22)}
+              ${Utils.avatarHTML(p.contact_name, 22, p.avatar_url)}
               <span class="text-xs text-gray-200">${p.contact_name}</span>
               <button onclick="Timeline.removePing('${todayStr}', ${p.contact_id})" class="text-gray-600 hover:text-red-400 text-[10px] ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
             </div>
@@ -197,7 +197,7 @@ const Timeline = {
               draggable="true"
               ondragstart="Timeline.onDragStart(event, ${c.id}, '${c.name}')"
               data-contact-id="${c.id}">
-              ${Utils.avatarHTML(c.name, 22)}
+              ${Utils.avatarHTML(c.name, 22, c.avatar_url)}
               <span class="text-xs text-gray-300">${c.name}</span>
             </div>
           `).join('')}
@@ -222,7 +222,7 @@ const Timeline = {
                 <div class="flex flex-wrap gap-1.5 flex-1">
                   ${dayPings.length ? dayPings.map(p => `
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/5">
-                      ${Utils.avatarHTML(p.contact_name, 18)}
+                      ${Utils.avatarHTML(p.contact_name, 18, p.avatar_url)}
                       <span class="text-[11px] text-gray-400">${p.contact_name}</span>
                     </div>
                   `).join('') : '<span class="text-[11px] text-gray-600">无记录</span>'}
@@ -336,7 +336,7 @@ const Timeline = {
                 ${Object.entries(Utils.interactionTypes).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
               </select>
             </div>
-            <div><label class="detail-label block mb-1">日期</label><input name="date" type="date" class="form-input" value="${new Date().toISOString().slice(0,10)}" required></div>
+            <div><label class="detail-label block mb-1">日期</label><input name="date" type="date" class="form-input" value="${Utils.todayStr()}" required></div>
           </div>
           <div><label class="detail-label block mb-1">标题 *</label><input name="title" class="form-input" required></div>
           <div><label class="detail-label block mb-1">内容</label><textarea name="content" class="form-input" rows="3"></textarea></div>

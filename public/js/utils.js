@@ -83,6 +83,8 @@ const API = {
   saveInteractionTypeOrder(order) { return this.request('PUT', '/settings/custom-interaction-type-order', { order }); },
   saveTagOrder(order) { return this.request('PUT', '/settings/tag-order', { order }); },
 
+  saveCustomStarLabels(labels) { return this.request('PUT', '/settings/custom-star-labels', { labels }); },
+
   // Online Pings
   getPings(days = 7) { return this.request('GET', `/pings?days=${days}`); },
   createPing(date, contact_id) { return this.request('POST', '/pings', { date, contact_id }); },
@@ -141,11 +143,18 @@ const Utils = {
       if (Array.isArray(settings.custom_interaction_type_order)) {
         this.interactionTypes = this.orderObject(this.interactionTypes, settings.custom_interaction_type_order);
       }
+      if (settings.custom_star_labels && typeof settings.custom_star_labels === 'object') {
+        this.starLabels = settings.custom_star_labels;
+      }
     } catch { /* use defaults */ }
   },
 
   // Mood config
   moods: { 1: '😞', 2: '😐', 3: '🙂', 4: '😊', 5: '🤩' },
+
+  // Star rating labels (customizable)
+  _defaultStarLabels: { 1: '初识', 2: '一般', 3: '熟悉', 4: '亲密', 5: '至交' },
+  starLabels: { 1: '初识', 2: '一般', 3: '熟悉', 4: '亲密', 5: '至交' },
 
   // Strength progress config
   progressConfig: {
@@ -209,25 +218,38 @@ const Utils = {
     return `<div class="avatar" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${bg1},${bg2});font-size:${fontSize}px;color:white">${initial}</div>`;
   },
 
-  // Relationship level stars (gold)
+  // Relationship level stars (gold) with custom label tooltip
   levelDots(level) {
-    let html = '<div class="flex gap-0.5">';
+    const label = this.starLabels[level] || '';
+    let html = `<div class="flex gap-0.5" title="${label}">`;
     for (let i = 1; i <= 5; i++) {
       html += `<span class="rel-star ${i <= level ? 'active' : 'inactive'}">★</span>`;
     }
+    if (label) html += `<span class="text-[9px] text-gray-500 ml-1 self-center">${label}</span>`;
     html += '</div>';
     return html;
   },
 
-  // Category badge
+  // Category badge (icon rendered in isolated span to avoid color interference with emoji)
   categoryBadge(category) {
     const cat = this.categories[category] || this.categories.other;
-    return `<span class="category-badge" style="background:${cat.bg};color:${cat.color};border:1px solid ${cat.color}30">${cat.icon} ${cat.label}</span>`;
+    return `<span class="category-badge" style="background:${cat.bg};border:1px solid ${cat.color}30"><span class="cat-icon">${cat.icon}</span><span style="color:${cat.color}">${cat.label}</span></span>`;
   },
 
   // Tag pill
   tagPill(tag) {
     return `<span class="tag-pill" style="color:${tag.color};border-color:${tag.color}40;background:${tag.color}15">${tag.name}</span>`;
+  },
+
+  // Get today's date string in local timezone (YYYY-MM-DD)
+  todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  },
+
+  // Get local date string from a Date object (YYYY-MM-DD)
+  localDateStr(date) {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
   },
 
   // Format date

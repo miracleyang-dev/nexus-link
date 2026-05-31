@@ -168,7 +168,13 @@ const Contacts = {
   async filterTag(tag) {
     this.currentFilter.tag = this.currentFilter.tag === tag ? '' : tag;
     await this.loadContacts();
-    this.render();
+    this.renderGrid();
+    // Update tag pill highlights
+    document.querySelectorAll('#view-contacts .filter-scroll .tag-pill').forEach(btn => {
+      btn.classList.toggle('ring-1', btn.textContent.trim().startsWith(this.currentFilter.tag));
+      btn.classList.toggle('ring-offset-1', btn.textContent.trim().startsWith(this.currentFilter.tag));
+      btn.classList.toggle('ring-offset-surface-1', btn.textContent.trim().startsWith(this.currentFilter.tag));
+    });
   },
 
   async showDetail(id) {
@@ -652,7 +658,7 @@ const Contacts = {
                   ${Object.entries(Utils.interactionTypes).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('')}
                 </select>
               </div>
-              <div><label class="detail-label block mb-1">日期</label><input name="date" type="date" class="form-input" value="${new Date().toISOString().slice(0,10)}" required></div>
+              <div><label class="detail-label block mb-1">日期</label><input name="date" type="date" class="form-input" value="${Utils.todayStr()}" required></div>
             </div>
             <div><label class="detail-label block mb-1">标题 *</label><input name="title" class="form-input" required placeholder="简短描述..."></div>
             <div><label class="detail-label block mb-1">详细内容</label><textarea name="content" class="form-input" rows="3" placeholder="详细记录..."></textarea></div>

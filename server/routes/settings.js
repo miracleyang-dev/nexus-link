@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
     const rows = db.prepare('SELECT key, value FROM settings').all();
     const settings = {};
     for (const r of rows) {
-      if (r.key === 'custom_categories' || r.key === 'custom_interaction_types' || r.key === 'tag_order' || r.key === 'custom_category_order' || r.key === 'custom_interaction_type_order') {
+      if (r.key === 'custom_categories' || r.key === 'custom_interaction_types' || r.key === 'tag_order' || r.key === 'custom_category_order' || r.key === 'custom_interaction_type_order' || r.key === 'custom_star_labels') {
         try { settings[r.key] = JSON.parse(r.value); } catch { settings[r.key] = r.value; }
       } else {
         settings[r.key] = r.value;
@@ -105,6 +105,24 @@ router.put('/custom-interaction-type-order', (req, res) => {
       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
     `).run(value);
     res.json({ message: '互动类型排序已保存', order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/settings/custom-star-labels - save custom star rating labels
+router.put('/custom-star-labels', (req, res) => {
+  try {
+    const { labels } = req.body;
+    if (!labels || typeof labels !== 'object') {
+      return res.status(400).json({ error: '无效的星级标签配置' });
+    }
+    const value = JSON.stringify(labels);
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('custom_star_labels', ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+    `).run(value);
+    res.json({ message: '星级标签已保存', labels });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

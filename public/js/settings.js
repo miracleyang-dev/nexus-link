@@ -36,6 +36,8 @@ const Settings = {
 
         ${this._renderInteractionTypeManagement()}
 
+        ${this._renderStarLabelManagement()}
+
         ${this._renderDataManagement()}
 
         ${this._renderStartDate(startDate)}
@@ -173,6 +175,62 @@ const Settings = {
     `;
   },
 
+  _renderStarLabelManagement() {
+    const labels = Utils.starLabels;
+    return `
+      <div class="glass-card p-6 mb-6">
+        <div class="flex items-start gap-4">
+          <div class="type-icon shrink-0" style="background:rgba(245,158,11,0.1);color:#f59e0b;font-size:18px">⭐</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-semibold text-white mb-1">亲密度星级含义</h3>
+            <p class="text-xs text-gray-500 mb-4">自定义 1~5 星各级别的文字说明，将显示在联系人卡片中</p>
+
+            <div class="space-y-2" id="star-labels-form">
+              ${[1,2,3,4,5].map(i => `
+                <div class="flex items-center gap-3">
+                  <span class="text-sm text-amber-400 w-20 shrink-0">${'★'.repeat(i)}${'☆'.repeat(5-i)}</span>
+                  <input class="form-input flex-1" data-star-level="${i}" value="${labels[i] || ''}" placeholder="如：${Utils._defaultStarLabels[i]}" maxlength="10">
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="flex items-center gap-3 mt-4">
+              <button onclick="Settings.saveStarLabels()" class="btn-primary text-xs px-4 py-2">保存</button>
+              <button onclick="Settings.resetStarLabels()" class="btn-ghost text-xs px-4 py-2">恢复默认</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async saveStarLabels() {
+    const labels = {};
+    for (let i = 1; i <= 5; i++) {
+      const input = document.querySelector(`[data-star-level="${i}"]`);
+      labels[i] = input ? input.value.trim() : '';
+    }
+    try {
+      await API.saveCustomStarLabels(labels);
+      Utils.starLabels = labels;
+      Utils.toast('星级含义已保存');
+    } catch (err) {
+      Utils.toast(err.message, 'error');
+    }
+  },
+
+  async resetStarLabels() {
+    const defaults = Utils._defaultStarLabels;
+    try {
+      await API.saveCustomStarLabels(defaults);
+      Utils.starLabels = { ...defaults };
+      Utils.toast('已恢复默认');
+      this.render();
+    } catch (err) {
+      Utils.toast(err.message, 'error');
+    }
+  },
+
   _renderStartDate(startDate) {
     return `
       <div class="glass-card p-6 mb-6">
@@ -195,7 +253,7 @@ const Settings = {
             <div class="flex items-end gap-3">
               <div class="flex-1">
                 <label class="detail-label block mb-1">${startDate ? '修改' : '设置'}起始日期</label>
-                <input type="date" id="start-date-input" class="form-input" value="${startDate}" max="${new Date().toISOString().slice(0,10)}">
+                <input type="date" id="start-date-input" class="form-input" value="${startDate}" max="${Utils.todayStr()}">
               </div>
               <button onclick="Settings.confirmSetStartDate()" class="btn-primary text-xs px-5 py-2.5 shrink-0">
                 ${startDate ? '更新并清理' : '设置并清理'}

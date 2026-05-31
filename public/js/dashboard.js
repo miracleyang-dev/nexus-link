@@ -1,8 +1,15 @@
 // Dashboard Module - Redesigned
 const Dashboard = {
   charts: {},
+  _cachedData: null,
 
   async init() {
+    // Avoid re-fetching if data was loaded recently (within 30s)
+    if (this._cachedData && Date.now() - this._cachedData._ts < 30000) {
+      const d = this._cachedData;
+      this.render(d.overview, d.frequency, d.levels, d.monthly, d.categories, d.interactionTypes, d.moodTrend, d.cityDist, d.neglected);
+      return;
+    }
     const [overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected] = await Promise.all([
       API.getOverview(),
       API.getInteractionFrequency(),
@@ -14,6 +21,7 @@ const Dashboard = {
       API.getCityDistribution(),
       API.getNeglected()
     ]);
+    this._cachedData = { overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected, _ts: Date.now() };
     this.render(overview, frequency, levels, monthly, categories, interactionTypes, moodTrend, cityDist, neglected);
   },
 
