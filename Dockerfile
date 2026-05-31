@@ -14,9 +14,4 @@ RUN npm install --omit=dev
 # Copy application code
 COPY . .
 
-# Do NOT hardcode PORT — Railway networking expects a specific port.
-# Default to 3000 to match Railway's service domain config.
-ENV PORT=3000
-EXPOSE 3000
-
 CMD ["node", "server/index.js"]
