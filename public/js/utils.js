@@ -176,7 +176,7 @@ const Utils = {
   // Render progress badge
   progressBadge(progress) {
     const cfg = this.progressConfig[progress] || this.progressConfig.learning;
-    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style="background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.color}25">${cfg.icon} ${cfg.label}</span>`;
+    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style="background:${cfg.bg};color:${cfg.color};border:1px solid ${this.hexAlpha(cfg.color, 0x25)}">${cfg.icon} ${cfg.label}</span>`;
   },
 
   // Rebuild an object based on key order
@@ -232,12 +232,22 @@ const Utils = {
   // Category badge (icon rendered in isolated span to avoid color interference with emoji)
   categoryBadge(category) {
     const cat = this.categories[category] || this.categories.other;
-    return `<span class="category-badge" style="background:${cat.bg};border:1px solid ${cat.color}30"><span class="cat-icon">${cat.icon}</span><span style="color:${cat.color}">${cat.label}</span></span>`;
+    return `<span class="category-badge" style="background:${cat.bg};border:1px solid ${this.hexAlpha(cat.color, 0x30)}"><span class="cat-icon">${cat.icon}</span><span style="color:${cat.color}">${cat.label}</span></span>`;
+  },
+
+  // Convert hex color + alpha (0-255 decimal) to rgba string for broad browser support
+  hexAlpha(hex, alpha) {
+    if (!hex || hex.length < 7) return hex;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const a = Math.round(alpha) / 255;
+    return `rgba(${r},${g},${b},${a.toFixed(2)})`;
   },
 
   // Tag pill
   tagPill(tag) {
-    return `<span class="tag-pill" style="color:${tag.color};border-color:${tag.color}40;background:${tag.color}15">${tag.name}</span>`;
+    return `<span class="tag-pill" style="color:${tag.color};border-color:${this.hexAlpha(tag.color, 0x40)};background:${this.hexAlpha(tag.color, 0x15)}">${tag.name}</span>`;
   },
 
   // Get today's date string in local timezone (YYYY-MM-DD)

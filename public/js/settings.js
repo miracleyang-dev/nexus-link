@@ -63,7 +63,7 @@ const Settings = {
               ${this.tags.map(t => `
                 <div class="flex items-center gap-3 settings-sortable-item" data-sort-key="${t.id}">
                   <span class="settings-drag-handle" title="拖拽排序">::</span>
-                  <span class="tag-pill" style="color:${t.color};border-color:${t.color}40;background:${t.color}15">${t.name}</span>
+                  <span class="tag-pill" style="color:${t.color};border-color:${Utils.hexAlpha(t.color, 0x40)};background:${Utils.hexAlpha(t.color, 0x15)}">${t.name}</span>
                   <span class="text-[11px] text-gray-500">${t.contact_count || 0} 人</span>
                   <button onclick="Settings.editTagName(${t.id}, '${t.name.replace(/'/g, "&#39;")}')" class="text-xs text-gray-500 hover:text-neon-blue">改名</button>
                   <button onclick="Settings.deleteTag(${t.id}, '${t.name.replace(/'/g, "&#39;")}')" class="text-xs text-gray-500 hover:text-red-400">删除</button>
@@ -296,6 +296,8 @@ const Settings = {
       handle.setAttribute('draggable', 'true');
       handle.addEventListener('dragstart', (e) => this._onDragStart(e));
       handle.addEventListener('dragend', (e) => this._onDragEnd(e));
+      // Touch support for mobile
+      handle.addEventListener('touchstart', (e) => this._onTouchSortStart(e), { passive: false });
     });
   },
 
@@ -796,5 +798,100 @@ const Settings = {
     } catch (err) {
       Utils.toast(err.message, 'error');
     }
+  },
+
+  // ── Touch sorting for mobile ──
+  _touchSortState: null,
+  _touchSortGhost: null,
+
+  _onTouchSortStart(e) {
+    const handle = e.currentTarget;
+    const item = handle.closest('.settings-sortable-item');
+    const container = item ? item.closest('.settings-sortable') : null;
+    if (!item || !container) return;
+
+    const touch = e.touches[0];
+    const startY = touch.clientY;
+    let moved = false;
+
+    const onMove = (ev) => {
+      const t = ev.touches[0];
+      const dy = t.clientY - startY;
+      if (!moved && Math.abs(dy) < 8) return;
+      if (!moved) {
+        moved = true;
+        ev.preventDefault();
+        const rect = item.getBoundingClientRect();
+        const ghost = item.cloneNode(true);
+        ghost.style.cssText = `position:fixed;z-index:9999;pointer-events:none;opacity:0.7;width:${rect.width}px;left:${rect.left}px;top:${t.clientY - rect.height/2}px;background:rgba(17,24,39,0.9);border-radius:8px;padding:8px;`;
+        document.body.appendChild(ghost);
+        this._touchSortGhost = ghost;
+        this._touchSortState = { item, container, type: container.dataset.sortType };
+        item.classList.add('dragging');
+
+        const placeholder = document.createElement('div');
+        placeholder.className = 'settings-sortable-placeholder';
+        placeholder.style.height = rect.height + 'px';
+        container.insertBefore(placeholder, item);
+        item.style.display = 'none';
+        this._touchSortPlaceholder = placeholder;
+      }
+      if (moved) {
+        ev.preventDefault();
+        if (this._touchSortGhost) {
+          this._touchSortGhost.style.top = (t.clientY - this._touchSortGhost.offsetHeight / 2) + 'px';
+        }
+        // Move placeholder
+        const afterElement = this._getDragAfterElement(container, t.clientY);
+        if (this._touchSortPlaceholder) {
+          if (afterElement == null) {
+            container.appendChild(this._touchSortPlaceholder);
+          } else if (afterElement !== this._touchSortPlaceholder) {
+            container.insertBefore(this._touchSortPlaceholder, afterElement);
+          }
+        }
+      }
+    };
+
+    const onEnd = () => {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+
+      if (!moved || !this._touchSortState) {
+        this._cleanupTouchSort();
+        return;
+      }
+
+      const { item: sortItem, container: sortContainer, type } = this._touchSortState;
+      if (this._touchSortPlaceholder && this._touchSortPlaceholder.parentNode === sortContainer) {
+        sortContainer.insertBefore(sortItem, this._touchSortPlaceholder);
+        this._touchSortPlaceholder.remove();
+      }
+      sortItem.style.display = '';
+      sortItem.classList.remove('dragging');
+      this._saveSortOrder(type, sortContainer);
+      this._cleanupTouchSort();
+    };
+
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+  },
+
+  _cleanupTouchSort() {
+    if (this._touchSortGhost) {
+      this._touchSortGhost.remove();
+      this._touchSortGhost = null;
+    }
+    if (this._touchSortPlaceholder) {
+      this._touchSortPlaceholder.remove();
+      this._touchSortPlaceholder = null;
+    }
+    if (this._touchSortState && this._touchSortState.item) {
+      this._touchSortState.item.style.display = '';
+      this._touchSortState.item.classList.remove('dragging');
+    }
+    this._touchSortState = null;
   },
 };

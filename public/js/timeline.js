@@ -49,6 +49,7 @@ const Timeline = {
       this.renderInteractions();
     } else {
       this.renderPings();
+      this._bindTouchDrag();
     }
   },
 
@@ -124,7 +125,7 @@ const Timeline = {
         <div class="timeline-dot"></div>
         <div class="flex items-start justify-between">
           <div class="flex items-start gap-3">
-            <div class="type-icon" style="background:${t.color}20;color:${t.color}">${t.icon}</div>
+            <div class="type-icon" style="background:${Utils.hexAlpha(t.color, 0x20)};color:${t.color}">${t.icon}</div>
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <h4 class="font-semibold text-white text-sm">${i.title}</h4>
@@ -236,7 +237,7 @@ const Timeline = {
     `;
   },
 
-  // Drag & Drop handlers
+  // Drag & Drop handlers (desktop)
   onDragStart(e, contactId, contactName) {
     this.dragContactId = contactId;
     e.dataTransfer.setData('text/plain', contactId);
@@ -276,6 +277,106 @@ const Timeline = {
     } catch (err) {
       Utils.toast(err.message, 'error');
     }
+  },
+
+  // ── Touch Drag & Drop (mobile) ──
+  _touchState: null,
+  _touchGhost: null,
+
+  _bindTouchDrag() {
+    const pool = document.getElementById('ping-contact-pool');
+    if (!pool) return;
+    pool.querySelectorAll('[data-contact-id]').forEach(el => {
+      el.addEventListener('touchstart', (e) => this._onTouchStart(e), { passive: false });
+    });
+  },
+
+  _onTouchStart(e) {
+    const el = e.currentTarget;
+    const contactId = parseInt(el.dataset.contactId);
+    if (!contactId) return;
+
+    // Delay to distinguish scroll from drag
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const startY = touch.clientY;
+    let moved = false;
+
+    const onMove = (ev) => {
+      const t = ev.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (!moved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (!moved) {
+        moved = true;
+        ev.preventDefault();
+        // Create ghost element
+        const rect = el.getBoundingClientRect();
+        const ghost = el.cloneNode(true);
+        ghost.style.cssText = `position:fixed;z-index:9999;pointer-events:none;opacity:0.85;width:${rect.width}px;left:${t.clientX - rect.width/2}px;top:${t.clientY - 20}px;`;
+        document.body.appendChild(ghost);
+        this._touchGhost = ghost;
+        this._touchState = { contactId, el };
+        el.style.opacity = '0.3';
+        // Highlight drop zone
+        const zone = document.getElementById('ping-drop-zone');
+        if (zone) zone.classList.add('border-neon-blue/40', 'bg-neon-blue/5');
+      }
+      if (moved) {
+        ev.preventDefault();
+        if (this._touchGhost) {
+          this._touchGhost.style.left = (t.clientX - this._touchGhost.offsetWidth / 2) + 'px';
+          this._touchGhost.style.top = (t.clientY - 20) + 'px';
+        }
+      }
+    };
+
+    const onEnd = async (ev) => {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+
+      if (!moved || !this._touchState) {
+        this._cleanupTouch();
+        return;
+      }
+
+      const t = ev.changedTouches[0];
+      const zone = document.getElementById('ping-drop-zone');
+      if (zone) {
+        const rect = zone.getBoundingClientRect();
+        const inZone = t.clientX >= rect.left && t.clientX <= rect.right && t.clientY >= rect.top && t.clientY <= rect.bottom;
+        zone.classList.remove('border-neon-blue/40', 'bg-neon-blue/5');
+        if (inZone) {
+          const todayStr = Utils.localDateStr(new Date());
+          try {
+            await API.createPing(todayStr, this._touchState.contactId);
+            this.pings = await API.getPings(7);
+            this._cleanupTouch();
+            this.renderPings();
+            return;
+          } catch (err) {
+            Utils.toast(err.message, 'error');
+          }
+        }
+      }
+      this._cleanupTouch();
+    };
+
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+  },
+
+  _cleanupTouch() {
+    if (this._touchGhost) {
+      this._touchGhost.remove();
+      this._touchGhost = null;
+    }
+    if (this._touchState && this._touchState.el) {
+      this._touchState.el.style.opacity = '';
+    }
+    this._touchState = null;
   },
 
   async removePing(dateStr, contactId) {

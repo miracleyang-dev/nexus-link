@@ -72,7 +72,7 @@ const Contacts = {
         ${this.tags.length ? `
         <div class="flex gap-2 mb-6 filter-scroll">
           ${this.tags.map(t => `
-            <button onclick="Contacts.filterTag('${t.name}')" class="tag-pill cursor-pointer ${this.currentFilter.tag === t.name ? 'ring-1 ring-offset-1 ring-offset-surface-1' : ''}" style="color:${t.color};border-color:${t.color}40;background:${t.color}15">${t.name}${t.contact_count ? ` (${t.contact_count})` : ''}</button>
+            <button onclick="Contacts.filterTag('${t.name}')" class="tag-pill cursor-pointer ${this.currentFilter.tag === t.name ? 'ring-1 ring-offset-1 ring-offset-surface-1' : ''}" style="color:${t.color};border-color:${Utils.hexAlpha(t.color, 0x40)};background:${Utils.hexAlpha(t.color, 0x15)}">${t.name}${t.contact_count ? ` (${t.contact_count})` : ''}</button>
           `).join('')}
           ${this.currentFilter.tag ? `<button onclick="Contacts.filterTag('')" class="text-xs text-gray-500 hover:text-gray-300 ml-1 shrink-0">清除标签</button>` : ''}
         </div>` : ''}
@@ -285,7 +285,7 @@ const Contacts = {
                 const t = Utils.interactionTypes[i.type] || Utils.interactionTypes.other;
                 const names = (i.contact_names || []).join(', ');
                 return `<div class="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02]">
-                  <div class="type-icon" style="background:${t.color}20;color:${t.color}">${t.icon}</div>
+                  <div class="type-icon" style="background:${Utils.hexAlpha(t.color, 0x20)};color:${t.color}">${t.icon}</div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm text-gray-200 truncate">${i.title}</p>
                     <p class="text-[11px] text-gray-500">${Utils.formatDate(i.date)} · ${t.label}${names ? ` · ${names}` : ''}</p>

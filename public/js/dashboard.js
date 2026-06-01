@@ -124,7 +124,7 @@ const Dashboard = {
             <p class="text-[11px] text-gray-500 mb-4">标签使用情况</p>
             <div class="flex flex-wrap gap-2">
               ${(overview.tag_distribution || []).map(t => `
-                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/5" style="background:${t.color}10">
+                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/5" style="background:${Utils.hexAlpha(t.color, 0x10)}">
                   <div class="w-2 h-2 rounded-full" style="background:${t.color}"></div>
                   <span class="text-xs" style="color:${t.color}">${t.name}</span>
                   <span class="text-[10px] text-gray-500 ml-0.5">${t.count}</span>
@@ -146,7 +146,7 @@ const Dashboard = {
                     <p class="text-xs text-gray-200 truncate">${d.name}</p>
                     <p class="text-[10px] text-gray-500">上次: ${Utils.relativeTime(d.last_interaction)}</p>
                   </div>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${levelColor}15;color:${d.category === 'family' ? '#ef4444' : levelColor}">
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${Utils.hexAlpha(levelColor, 0x15)};color:${d.category === 'family' ? '#ef4444' : levelColor}">
                     ${'★'.repeat(d.relationship_level)}
                   </span>
                 </div>`;

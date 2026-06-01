@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>NexusLink</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="icon.png">
@@ -120,7 +120,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto pt-[52px] pb-[68px] md:pt-0 md:pb-0">
+    <main class="flex-1 overflow-y-auto pt-[52px] pb-[calc(68px+env(safe-area-inset-bottom,0px))] md:pt-0 md:pb-0">
       <!-- Views will be inserted here by JS -->
       <div id="view-contacts" class="view-panel"></div>
       <div id="view-timeline" class="view-panel hidden"></div>

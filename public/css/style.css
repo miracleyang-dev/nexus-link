@@ -328,8 +328,6 @@ select.form-input { appearance: none; cursor: pointer; }
 }
 .category-badge .cat-icon {
   font-style: normal;
-  color: initial;
-  -webkit-text-fill-color: initial;
 }
 
 /* Empty state */
@@ -362,7 +360,12 @@ select.form-input { appearance: none; cursor: pointer; }
     max-width: 100% !important;
     margin: 8px !important;
     max-height: calc(100vh - 80px) !important;
+    max-height: calc(100dvh - 80px) !important;
     border-radius: 14px !important;
+  }
+  /* Modal overlay centers content properly on mobile */
+  #modal-overlay {
+    padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
   }
   /* Smaller form grids stack on mobile */
   #modal-content .grid-cols-2,
@@ -380,8 +383,8 @@ select.form-input { appearance: none; cursor: pointer; }
   #contacts-grid { grid-template-columns: 1fr !important; }
   /* Detail info grid stays 1-col on mobile (set in JS) */
   .detail-info-grid { grid-template-columns: 1fr !important; }
-  /* Detail section text wrapping */
-  .detail-value { word-break: break-all; }
+  /* Detail section text wrapping - use break-word to avoid splitting words */
+  .detail-value { overflow-wrap: break-word; word-break: break-word; }
   /* Strength row selects */
   .strength-row select.form-input { font-size: 12px; padding: 8px 10px; }
   /* Graph min-height */
@@ -403,4 +406,10 @@ select.form-input { appearance: none; cursor: pointer; }
   .filter-scroll::-webkit-scrollbar { display: none; }
   .filter-scroll .filter-chip,
   .filter-scroll .tag-pill { flex-shrink: 0; }
+  /* Dashboard charts min-height for readability */
+  .glass-card canvas { min-height: 160px; }
+  /* Prevent tap highlight flash on interactive elements */
+  button, a, .contact-card, .filter-chip, .tag-pill, .nav-item, .mobile-nav-item {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
