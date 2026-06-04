@@ -36,6 +36,16 @@ router.get('/overview', (req, res) => {
       WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
     `).get().count;
 
+    // Online ping metrics (浅社交)
+    const pingsToday = db.prepare(`
+      SELECT COUNT(*) as count FROM online_pings
+      WHERE date = date('now', 'localtime')
+    `).get().count;
+    const pingsThisWeek = db.prepare(`
+      SELECT COUNT(*) as count FROM online_pings
+      WHERE date >= date('now', 'localtime', '-6 days')
+    `).get().count;
+
     res.json({
       total_contacts: totalContacts,
       interactions_this_month: interactionsThisMonth,
@@ -44,6 +54,8 @@ router.get('/overview', (req, res) => {
       tag_count: tagCount,
       avg_relationship_level: Math.round(avgLevel * 10) / 10,
       new_contacts_this_month: newThisMonth,
+      pings_today: pingsToday,
+      pings_this_week: pingsThisWeek,
       tag_distribution: tagDistribution
     });
   } catch (err) {
@@ -185,6 +197,27 @@ router.get('/neglected', (req, res) => {
       ORDER BY days_since DESC
       LIMIT 10
     `).all();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/stats/ping-frequency - top 10 contacts by online ping count (浅社交)
+router.get('/ping-frequency', (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const data = db.prepare(`
+      SELECT c.id, c.name, c.category, c.avatar_url,
+             COUNT(p.date) as ping_count,
+             MAX(p.date) as last_ping
+      FROM contacts c
+      JOIN online_pings p ON c.id = p.contact_id
+      WHERE p.date >= date('now', 'localtime', '-' || ? || ' days')
+      GROUP BY c.id
+      ORDER BY ping_count DESC, last_ping DESC
+      LIMIT 10
+    `).all(days);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

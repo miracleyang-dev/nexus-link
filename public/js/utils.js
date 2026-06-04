@@ -58,6 +58,7 @@ const API = {
   getMoodTrend() { return this.request('GET', '/stats/mood-trend'); },
   getCityDistribution() { return this.request('GET', '/stats/city-distribution'); },
   getNeglected() { return this.request('GET', '/stats/neglected'); },
+  getPingFrequency(days = 30) { return this.request('GET', `/stats/ping-frequency?days=${days}`); },
 
   // Strengths
   getStrengths(contactId) { return this.request('GET', `/contacts/${contactId}/strengths`); },
