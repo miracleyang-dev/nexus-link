@@ -5,71 +5,84 @@
 <h1 align="center">NexusLink</h1>
 <p align="center">个人社交人脉管理系统 — 记录联系人、互动、生日，维护你的每一段关系。</p>
 
-## Features
+## 亮点功能
 
-- **联系人管理** — 丰富的个人档案（MBTI、星座、性格特征、个人长处等）
-- **多条目联系方式** — 微信、邮箱等自由组合，独立存储
-- **互动时间线** — 支持单人/多人互动记录，含情绪追踪
-- **线上互动打卡** — 拖拽式日常线上互动记录，每日一条去重
-- **生日提醒** — 支持农历/公历，保存联系人时自动同步，到期自动滚动至下一年
-- **数据仪表盘** — Chart.js 驱动的多维度统计分析
-- **标签系统** — 灵活的联系人分组与筛选
-- **暗色赛博主题** — Tailwind CSS 定制的科技感界面
-- **移动端适配** — 响应式设计，底部导航栏
+- **联系人档案**：MBTI、星座、性格特征、个人优点、备注等丰富信息
+- **多条联系方式**：微信/邮箱等自由组合，独立存储
+- **互动时间线**：支持多人互动记录，含心情追踪
+- **线上浅社交打卡**：同一天同一联系人去重，支持补记近 7 天
+- **生日提醒**：公历/农历可选，自动生成并滚动到下一年
+- **数据仪表盘**：互动趋势、心情变化、城市分布、待维护关系等统计
+- **标签与分类**：标签管理、联系人分类与互动类型可自定义排序
+- **数据管理**：一键导出/导入 JSON 备份，支持清空
+- **暗色赛博主题**：移动端适配，底部导航栏
 
-## Tech Stack
+## 技术栈
 
 | Layer | Technology |
 |-------|------------|
 | Backend | Node.js, Express |
-| Frontend | Vanilla JS, Tailwind CSS, Chart.js |
+| Frontend | Vanilla JS, Tailwind CSS (CDN), Chart.js |
 | Database | SQLite (better-sqlite3, WAL mode) |
 | Calendar | lunar-javascript（农历/公历互转） |
 
-## Getting Started
+## 快速开始
 
 ```bash
-# Install dependencies
 npm install
-
-# Start the server
 npm start
 ```
 
-The app runs at `http://localhost:3000`. A SQLite database is auto-created in `data/app.db` with sample seed data on first launch.
+应用默认运行在 `http://localhost:3000`。首次启动会自动创建 SQLite 数据库并写入示例数据（默认路径为 `data/app.db`）。
 
-## Database Schema
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `PORT` | `3000` | 服务端口 |
+| `DB_PATH` | `data/app.db` | SQLite 数据库文件路径 |
+| `NODE_ENV` | `(not set)` | 运行环境 |
+
+健康检查：`GET /health`
+
+## 数据结构概览
 
 ```
-contacts            — 联系人主表
-contact_methods     — 联系方式（微信/邮箱等，一对多）
-tags                — 标签
-contact_tags        — 联系人-标签关联
-interactions        — 互动记录
+contacts             — 联系人主表
+contact_methods      — 联系方式（微信/邮箱等，一对多）
+tags                 — 标签
+contact_tags         — 联系人-标签关联
+interactions         — 互动记录
 interaction_contacts — 互动-联系人关联（支持多人）
-reminders           — 生日提醒（自动管理）
-online_pings        — 线上互动打卡（日期+联系人去重）
-contact_strengths   — 个人长处记录
-settings            — 系统设置
+reminders            — 生日提醒（自动管理）
+online_pings         — 线上互动打卡（日期+联系人去重）
+contact_strengths    — 个人优点记录
+settings             — 系统设置
 ```
 
-## API Endpoints
+## API 速览
 
 | Resource | Methods | Path |
 |----------|---------|------|
 | Contacts | GET, POST, PUT, DELETE | `/api/contacts` |
+| Contact Detail | GET | `/api/contacts/:id` |
 | Contact Methods | (embedded in contact CRUD) | — |
-| Tags | GET, POST, DELETE | `/api/tags` |
 | Contact Tags | POST | `/api/contacts/:id/tags` |
+| Contact Strengths | GET, POST | `/api/contacts/:id/strengths` |
+| Strengths | PUT, DELETE | `/api/strengths/:id` |
+| Tags | GET, POST, PUT, DELETE | `/api/tags` |
 | Interactions | GET, POST, DELETE | `/api/interactions` |
-| Reminders | GET, PUT | `/api/reminders` |
+| Timeline | GET | `/api/interactions/timeline` |
+| Reminders | GET, PUT, DELETE | `/api/reminders` |
+| Upcoming Reminders | GET | `/api/reminders/upcoming` |
 | Online Pings | GET, POST, DELETE | `/api/pings` |
-| Strengths | GET, POST, PUT, DELETE | `/api/contacts/:id/strengths` |
 | Stats | GET | `/api/stats/*` |
-| Settings | GET, PUT, DELETE | `/api/settings/*` |
+| Settings | GET | `/api/settings` |
+| Settings Export/Import | GET, POST | `/api/settings/export`, `/api/settings/import` |
+| Settings Clear All | DELETE | `/api/settings/clear-all` |
 | Lunar Convert | GET | `/api/lunar/convert` |
 
-## Project Structure
+## 项目结构
 
 ```
 ├── public/                  # Frontend
@@ -94,41 +107,29 @@ settings            — 系统设置
 │       ├── contacts.js      # Contacts CRUD + strengths + tags + birthday sync
 │       ├── interactions.js  # Multi-person interactions + online pings
 │       ├── reminders.js     # Birthday auto-roll
-│       ├── settings.js      # Record start date
+│       ├── settings.js      # Settings + import/export/clear
 │       └── stats.js         # Analytics queries
 ├── data/                    # SQLite DB (auto-created, gitignored)
 ├── Dockerfile               # Docker build config
 ├── railway.toml             # Railway deployment config
 ├── package.json
+├── package-lock.json
 └── LICENSE
 ```
 
-## Deployment (Railway)
+## 部署（Railway）
 
-1. Fork or connect this repo to [Railway](https://railway.app)
-2. Railway builds the Docker image from `Dockerfile`
-3. Add a **Volume** (mount path: `/data`) for SQLite persistence
-4. Set environment variables:
+1. Fork 或连接该仓库到 [Railway](https://railway.app)
+2. Railway 使用 `Dockerfile` 构建镜像
+3. 添加 **Volume**（挂载路径：`/data`）用于 SQLite 持久化
+4. 配置环境变量：
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| `DB_PATH` | `/data/nexus.db` | Database file path (on Volume) |
-| `NODE_ENV` | `production` | Production mode |
+| 变量 | 示例值 | 说明 |
+|------|--------|------|
+| `DB_PATH` | `/data/nexus.db` | 数据库文件路径（挂载卷内） |
+| `NODE_ENV` | `production` | 生产模式 |
 
-5. In **Settings → Networking**, click **Generate Domain** and set the port to **3000**
-
-## Icon Design
-
-<p align="center">
-  <img src="public/icon.png" alt="NexusLink Icon" width="200" style="border-radius: 24px;">
-</p>
-
-**设计理念**: 三个发光节点由霓虹线条连接，构成三角形星座图案，象征人与人之间的社交连接网络。
-
-- **配色**: 从霓虹蓝 `#00d4ff` 到紫色 `#a855f7` 的渐变，与应用内的赛博朋克主题一致
-- **背景**: 深色 `#0a0e1a`，保持与 UI 的视觉统一
-- **风格**: 赛博朋克极简 — 干净的几何线条 + 节点光晕，无文字
-- **寓意**: 三个节点代表不同的联系人，连接线代表互动关系，三角形结构象征稳固的社交网络
+5. 在 **Settings → Networking** 生成域名，端口设置为 **3000**
 
 ## License
 
