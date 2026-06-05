@@ -280,49 +280,14 @@ router.delete('/clear-all', (req, res) => {
 });
 
 // PUT /api/settings/record-start-date
-// Sets the global record start date and physically deletes all data before it.
+// DEPRECATED — global record start date has been removed.
+// Per-contact record_start_date is now stored on the contact directly.
 router.put('/record-start-date', (req, res) => {
-  try {
-    const { date } = req.body;
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
-    }
-
-    const purge = db.transaction(() => {
-      const delInteractions = db.prepare('DELETE FROM interactions WHERE date < ?').run(date);
-      const delReminders = db.prepare('DELETE FROM reminders WHERE remind_date < ?').run(date);
-      const delPings = db.prepare('DELETE FROM online_pings WHERE date < ?').run(date);
-      db.prepare(`
-        INSERT INTO settings (key, value, updated_at) VALUES ('record_start_date', ?, datetime('now'))
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
-      `).run(date);
-
-      return {
-        deleted_interactions: delInteractions.changes,
-        deleted_reminders: delReminders.changes,
-        deleted_pings: delPings.changes,
-      };
-    });
-
-    const result = purge();
-
-    res.json({
-      record_start_date: date,
-      purged: result
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.status(410).json({ error: '全局起始日期已废弃，请在联系人编辑页设置专属起始日期。' });
 });
 
-// DELETE /api/settings/record-start-date - clear the start date restriction
 router.delete('/record-start-date', (req, res) => {
-  try {
-    db.prepare("DELETE FROM settings WHERE key = 'record_start_date'").run();
-    res.json({ message: 'Record start date cleared' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.status(410).json({ error: '全局起始日期已废弃，请在联系人编辑页设置专属起始日期。' });
 });
 
 module.exports = router;

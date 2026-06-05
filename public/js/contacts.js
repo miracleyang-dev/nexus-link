@@ -240,6 +240,7 @@ const Contacts = {
           ${this.detailField('家乡', c.hometown, '🏠')}
           ${this.detailField('现居', c.current_city, '📍')}
           ${this.detailField('性格特征', c.personality_traits, '✦')}
+          ${c.record_start_date ? this.detailField('记录起始日', `${c.record_start_date} <span class="text-gray-500 text-[11px]">（早于此日的互动/浅社交将被拒绝）</span>`, '📅') : ''}
         </div>
 
         <!-- Structured Strengths -->
@@ -385,7 +386,7 @@ const Contacts = {
           <div id="birthday-conversion" class="text-xs text-gray-500 -mt-2 pl-1 hidden"></div>
 
           <!-- More Info (collapsible) -->
-          <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city) ? 'open' : ''}>
+          <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city || c.record_start_date) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 grid grid-cols-2 gap-4">
               <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
@@ -397,6 +398,13 @@ const Contacts = {
               </div>
               <div><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}"></div>
               <div><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}"></div>
+              <div class="col-span-2">
+                <label class="detail-label block mb-1">📅 专属记录起始日期 <span class="text-gray-600 text-[10px]">(选填，此人所有互动/浅社交不可早于该日)</span></label>
+                <div class="flex items-center gap-2">
+                  <input name="record_start_date" type="date" class="form-input flex-1" value="${c.record_start_date || ''}" max="${Utils.todayStr()}">
+                  <button type="button" onclick="this.previousElementSibling.value=''" class="btn-ghost text-xs px-3 py-2">清除</button>
+                </div>
+              </div>
             </div>
           </details>
 
@@ -582,6 +590,8 @@ const Contacts = {
     }
     data.relationship_level = parseInt(data.relationship_level) || 3;
     if (!data.birthday_type) data.birthday_type = 'solar';
+    // Normalize per-contact record start date: empty -> null (clears the limit)
+    if (!data.record_start_date) data.record_start_date = null;
 
     // Collect contact methods
     data.contact_methods = this._collectMethods();

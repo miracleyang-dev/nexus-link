@@ -36,6 +36,7 @@ db.exec(`
     notes TEXT,
     relationship_level INTEGER DEFAULT 3 CHECK(relationship_level BETWEEN 1 AND 5),
     category TEXT DEFAULT 'other' CHECK(category IN ('friend','family','colleague','business','other')),
+    record_start_date TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
@@ -411,6 +412,23 @@ function seedDatabase() {
   console.log('Database seeded successfully.');
 }
 
+// Migration: add per-contact record_start_date column (replaces global setting)
+function migrateAddContactStartDate() {
+  const cols = db.prepare("PRAGMA table_info(contacts)").all();
+  const hasStartDate = cols.some(c => c.name === 'record_start_date');
+  if (!hasStartDate) {
+    console.log('[migration] Adding contacts.record_start_date ...');
+    db.exec("ALTER TABLE contacts ADD COLUMN record_start_date TEXT");
+    console.log('[migration] contacts.record_start_date added.');
+  }
+  // Drop the deprecated global setting if present
+  const legacy = db.prepare("SELECT value FROM settings WHERE key = 'record_start_date'").get();
+  if (legacy) {
+    db.prepare("DELETE FROM settings WHERE key = 'record_start_date'").run();
+    console.log('[migration] Removed deprecated global record_start_date setting.');
+  }
+}
+
 // Migration: remove CHECK constraints on category and interaction type to allow custom values
 function migrateRemoveCheckConstraints() {
   const contactsSQL = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='contacts'").get();
@@ -437,6 +455,7 @@ function migrateRemoveCheckConstraints() {
         notes TEXT,
         relationship_level INTEGER DEFAULT 3 CHECK(relationship_level BETWEEN 1 AND 5),
         category TEXT DEFAULT 'other',
+        record_start_date TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       );
@@ -466,6 +485,12 @@ function migrateRemoveCheckConstraints() {
     `);
     console.log('[migration] interactions.type CHECK removed.');
   }
+}
+
+try {
+  migrateAddContactStartDate();
+} catch (err) {
+  console.error('[migration] add contact start date failed:', err.message);
 }
 
 try {

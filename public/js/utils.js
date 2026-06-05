@@ -73,8 +73,6 @@ const API = {
 
   // Settings
   getSettings() { return this.request('GET', '/settings'); },
-  setRecordStartDate(date) { return this.request('PUT', '/settings/record-start-date', { date }); },
-  clearRecordStartDate() { return this.request('DELETE', '/settings/record-start-date'); },
   exportData() { return this.request('GET', '/settings/export'); },
   importData(data) { return this.request('POST', '/settings/import', data); },
   clearAllData() { return this.request('DELETE', '/settings/clear-all'); },

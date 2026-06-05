@@ -141,7 +141,7 @@ router.post('/', (req, res) => {
       'name', 'avatar_url', 'company', 'position',
       'birthday', 'birthday_type', 'zodiac', 'mbti', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
-      'relationship_level', 'category'
+      'relationship_level', 'category', 'record_start_date'
     ];
     const data = {};
     for (const f of fields) {
@@ -185,7 +185,7 @@ router.put('/:id', (req, res) => {
       'name', 'avatar_url', 'company', 'position',
       'birthday', 'birthday_type', 'zodiac', 'mbti', 'hometown', 'current_city',
       'personality_traits', 'strengths', 'preferences', 'notes',
-      'relationship_level', 'category'
+      'relationship_level', 'category', 'record_start_date'
     ];
     const updates = [];
     const params = {};

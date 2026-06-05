@@ -21,7 +21,6 @@ const Settings = {
 
   render() {
     const el = document.getElementById('view-settings');
-    const startDate = this.settings.record_start_date || '';
 
     el.innerHTML = `
       <div class="p-6 lg:p-8 max-w-2xl">
@@ -39,8 +38,6 @@ const Settings = {
         ${this._renderStarLabelManagement()}
 
         ${this._renderDataManagement()}
-
-        ${this._renderStartDate(startDate)}
 
         ${this._renderExplanation()}
       </div>
@@ -231,38 +228,10 @@ const Settings = {
     }
   },
 
-  _renderStartDate(startDate) {
-    return `
-      <div class="glass-card p-6 mb-6">
-        <div class="flex items-start gap-4">
-          <div class="type-icon shrink-0" style="background:rgba(0,212,255,0.1);color:#00d4ff;font-size:18px">📅</div>
-          <div class="flex-1 min-w-0">
-            <h3 class="text-sm font-semibold text-white mb-1">记录起始日期</h3>
-            <p class="text-xs text-gray-500 mb-4">设置后，系统仅保存该日期及之后的互动记录与线上浅互动数据，提醒也将受限于此日期。该日期之前的互动记录、线上浅互动、提醒将被永久删除。联系人等其他数据不受影响。</p>
-            ${startDate ? `
-              <div class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-neon-blue/5 border border-neon-blue/15">
-                <span class="text-sm text-gray-300">当前起始日期：</span>
-                <span class="text-sm font-semibold text-neon-blue">${startDate}</span>
-                <button onclick="Settings.clearStartDate()" class="ml-auto text-xs text-gray-500 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-white/5">清除限制</button>
-              </div>
-            ` : `
-              <div class="flex items-center gap-2 mb-4 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                <span class="text-xs text-gray-500">未设置，所有历史数据均保留</span>
-              </div>
-            `}
-            <div class="flex items-end gap-3">
-              <div class="flex-1">
-                <label class="detail-label block mb-1">${startDate ? '修改' : '设置'}起始日期</label>
-                <input type="date" id="start-date-input" class="form-input" value="${startDate}" max="${Utils.todayStr()}">
-              </div>
-              <button onclick="Settings.confirmSetStartDate()" class="btn-primary text-xs px-5 py-2.5 shrink-0">
-                ${startDate ? '更新并清理' : '设置并清理'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+  _renderStartDate() {
+    // Deprecated: per-contact record_start_date replaces global setting.
+    // Configure each contact's start date from the contact edit modal.
+    return '';
   },
 
   _renderExplanation() {
@@ -275,7 +244,8 @@ const Settings = {
           <li class="flex items-start gap-2"><span class="text-neon-blue mt-0.5">&#x2022;</span><span>删除标签会自动解除所有联系人与该标签的关联</span></li>
           <li class="flex items-start gap-2"><span class="text-neon-blue mt-0.5">&#x2022;</span><span>数据导出会将所有数据打包为 JSON 文件下载到本地</span></li>
           <li class="flex items-start gap-2"><span class="text-neon-blue mt-0.5">&#x2022;</span><span>数据导入会覆盖当前所有数据，建议先导出备份</span></li>
-          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2022;</span><span class="text-red-400/80">一键清空和起始日期操作均不可逆，请谨慎使用</span></li>
+          <li class="flex items-start gap-2"><span class="text-neon-blue mt-0.5">&#x2022;</span><span>每位联系人可在编辑页设置专属「记录起始日期」，仅约束该人的互动与浅社交</span></li>
+          <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2022;</span><span class="text-red-400/80">一键清空操作不可逆，请谨慎使用</span></li>
         </ul>
       </div>
     `;
@@ -739,66 +709,9 @@ const Settings = {
     }
   },
 
-  // ── Start Date ──
-
-  confirmSetStartDate() {
-    const input = document.getElementById('start-date-input');
-    const date = input ? input.value : '';
-    if (!date) { Utils.toast('请先选择日期', 'error'); return; }
-    Utils.showModal(`
-      <div class="p-6">
-        <div class="flex items-center gap-3 mb-4">
-          <span class="text-2xl">⚠️</span>
-          <h2 class="text-lg font-bold text-white">确认设置起始日期</h2>
-        </div>
-        <div class="mb-6 space-y-3">
-          <p class="text-sm text-gray-300">将记录起始日期设为 <strong class="text-neon-blue">${date}</strong>，以下数据将被永久删除：</p>
-          <ul class="text-sm text-gray-400 space-y-1.5 pl-4">
-            <li>&#x2022; 日期早于 ${date} 的所有互动记录</li>
-            <li>&#x2022; 日期早于 ${date} 的所有线上浅互动记录</li>
-            <li>&#x2022; 提醒日期早于 ${date} 的所有提醒</li>
-          </ul>
-          <div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <p class="text-xs text-red-400 font-medium">此操作不可撤销，删除后无法恢复。</p>
-          </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-          <button type="button" onclick="Utils.closeModal()" class="btn-ghost">取消</button>
-          <button type="button" onclick="Settings.executeSetStartDate('${date}')" class="px-5 py-2.5 rounded-lg text-sm font-semibold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all cursor-pointer">确认删除并设置</button>
-        </div>
-      </div>
-    `);
-  },
-
-  async executeSetStartDate(date) {
-    try {
-      const result = await API.setRecordStartDate(date);
-      Utils.closeModal();
-      const p = result.purged || {};
-      const total = (p.deleted_interactions || 0) + (p.deleted_reminders || 0) + (p.deleted_pings || 0);
-      if (total > 0) {
-        Utils.toast(`已设置起始日期，清理了 ${p.deleted_interactions || 0} 条互动、${p.deleted_pings || 0} 条浅互动、${p.deleted_reminders || 0} 条提醒`);
-      } else {
-        Utils.toast('起始日期已设置，无需清理旧数据');
-      }
-      this.settings.record_start_date = date;
-      this.render();
-    } catch (err) {
-      Utils.toast(err.message, 'error');
-    }
-  },
-
-  async clearStartDate() {
-    if (!confirm('确定清除起始日期限制？清除后不会恢复已删除的数据，但新建记录不再受日期限制。')) return;
-    try {
-      await API.clearRecordStartDate();
-      Utils.toast('起始日期限制已清除');
-      delete this.settings.record_start_date;
-      this.render();
-    } catch (err) {
-      Utils.toast(err.message, 'error');
-    }
-  },
+  // ── Start Date (DEPRECATED) ──
+  // Global start date config has been removed. Each contact now owns its
+  // record_start_date via the Contacts edit modal.
 
   // ── Touch sorting for mobile ──
   _touchSortState: null,
