@@ -388,7 +388,7 @@ const Contacts = {
           <!-- More Info (collapsible) -->
           <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city || c.record_start_date) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
-            <div class="p-4 pt-2 grid grid-cols-2 gap-4">
+            <div class="p-4 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 contact-more-grid">
               <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
               <div><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
               <div><label class="detail-label block mb-1">亲密度</label>
