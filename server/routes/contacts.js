@@ -22,6 +22,34 @@ function syncBirthdayReminder(contactId) {
   `).run(contact.id, `${contact.name}的生日`, `${result.calLabel} ${contact.birthday.slice(5)}`, dateStr);
 }
 
+// Helper: purge interactions / online pings for a contact that occurred before startDate.
+// - Online pings are per-contact, so just delete them.
+// - Interactions are shared via interaction_contacts; we only unlink this contact,
+//   then sweep interactions that have no remaining links.
+// Returns { pings, interactions } — counts of records actually removed.
+function purgeRecordsBefore(contactId, startDate) {
+  if (!startDate) return { pings: 0, interactions: 0 };
+  const tx = db.transaction(() => {
+    const pingInfo = db.prepare(
+      'DELETE FROM online_pings WHERE contact_id = ? AND date < ?'
+    ).run(contactId, startDate);
+
+    db.prepare(`
+      DELETE FROM interaction_contacts
+      WHERE contact_id = ?
+        AND interaction_id IN (SELECT id FROM interactions WHERE date < ?)
+    `).run(contactId, startDate);
+
+    const interInfo = db.prepare(`
+      DELETE FROM interactions
+      WHERE id NOT IN (SELECT DISTINCT interaction_id FROM interaction_contacts)
+    `).run();
+
+    return { pings: pingInfo.changes, interactions: interInfo.changes };
+  });
+  return tx();
+}
+
 // GET /api/contacts - list all with tags, support filters
 router.get('/', (req, res) => {
   try {
@@ -168,6 +196,11 @@ router.post('/', (req, res) => {
       syncBirthdayReminder(contactId);
     }
 
+    // Auto-purge records older than record_start_date (no-op for fresh contact)
+    if (data.record_start_date) {
+      purgeRecordsBefore(contactId, data.record_start_date);
+    }
+
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(contactId);
     res.status(201).json(contact);
   } catch (err) {
@@ -217,6 +250,13 @@ router.put('/:id', (req, res) => {
     // Sync birthday reminder
     syncBirthdayReminder(req.params.id);
 
+    // Auto-purge records older than record_start_date when it is set (or updated).
+    // Only triggers when the caller actually included record_start_date in the payload
+    // AND the value is a non-empty date string — clearing it does nothing destructive.
+    if (Object.prototype.hasOwnProperty.call(req.body, 'record_start_date') && req.body.record_start_date) {
+      purgeRecordsBefore(req.params.id, req.body.record_start_date);
+    }
+
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
     res.json(contact);
   } catch (err) {
@@ -230,6 +270,37 @@ router.delete('/:id', (req, res) => {
     const info = db.prepare('DELETE FROM contacts WHERE id = ?').run(req.params.id);
     if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
     res.json({ message: 'Contact deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/contacts/:id/tags - assign tags to contact
+router.post('/:id/tags', (req, res) => {
+  try {
+    const contactId = req.params.id;
+    const contact = db.prepare('SELECT id FROM contacts WHERE id = ?').get(contactId);
+    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+
+    const { tag_ids } = req.body;
+    if (!Array.isArray(tag_ids)) return res.status(400).json({ error: 'tag_ids must be an array' });
+
+    const assign = db.transaction((ids) => {
+      db.prepare('DELETE FROM contact_tags WHERE contact_id = ?').run(contactId);
+      const insert = db.prepare('INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)');
+      for (const tagId of ids) {
+        insert.run(contactId, tagId);
+      }
+    });
+    assign(tag_ids);
+
+    const tags = db.prepare(`
+      SELECT t.* FROM tags t
+      JOIN contact_tags ct ON t.id = ct.tag_id
+      WHERE ct.contact_id = ?
+    `).all(contactId);
+
+    res.json(tags);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -363,37 +434,6 @@ tagsRouter.put('/:id', (req, res) => {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ error: '标签名已存在' });
     }
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/contacts/:id/tags - assign tags to contact (mounted at /api by index.js)
-tagsRouter.post('/contacts/:id/tags', (req, res) => {
-  try {
-    const contactId = req.params.id;
-    const contact = db.prepare('SELECT id FROM contacts WHERE id = ?').get(contactId);
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
-
-    const { tag_ids } = req.body;
-    if (!Array.isArray(tag_ids)) return res.status(400).json({ error: 'tag_ids must be an array' });
-
-    const assign = db.transaction((ids) => {
-      db.prepare('DELETE FROM contact_tags WHERE contact_id = ?').run(contactId);
-      const insert = db.prepare('INSERT INTO contact_tags (contact_id, tag_id) VALUES (?, ?)');
-      for (const tagId of ids) {
-        insert.run(contactId, tagId);
-      }
-    });
-    assign(tag_ids);
-
-    const tags = db.prepare(`
-      SELECT t.* FROM tags t
-      JOIN contact_tags ct ON t.id = ct.tag_id
-      WHERE ct.contact_id = ?
-    `).all(contactId);
-
-    res.json(tags);
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

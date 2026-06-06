@@ -52,8 +52,6 @@ const { lunarRouter } = require('./utils/lunar');
 
 app.use('/api/contacts', contactsRouter);
 app.use('/api/tags', tagsRouter);
-// Also mount the tag assignment route for /api/contacts/:id/tags
-app.use('/api', tagsRouter);
 app.use('/api/interactions', interactionsRouter);
 app.use('/api/reminders', remindersRouter);
 app.use('/api/stats', statsRouter);

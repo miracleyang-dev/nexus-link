@@ -2,6 +2,27 @@
    NexusLink - Cyber Tech Theme Styles
    ============================================ */
 
+/* Prevent iOS auto text resize / unify mobile rendering with desktop simulator */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Contact card masonry: ensure cards don't break across columns */
+#contacts-grid .contact-card {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  display: block;
+  width: 100%;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -379,8 +400,13 @@ select.form-input { appearance: none; cursor: pointer; }
     top: 60px;
   }
   .toast { width: 100%; }
-  /* Contact card grid single column */
-  #contacts-grid { grid-template-columns: 1fr !important; }
+  /* Contact card masonry: single column on phone */
+  #contacts-grid {
+    column-count: 1 !important;
+    -webkit-column-count: 1 !important;
+    grid-template-columns: 1fr !important;
+  }
+  #contacts-grid .contact-card { margin-bottom: 12px; }
   /* Detail info grid stays 1-col on mobile (set in JS) */
   .detail-info-grid { grid-template-columns: 1fr !important; }
   /* Detail section text wrapping - use break-word to avoid splitting words */
@@ -411,6 +437,58 @@ select.form-input { appearance: none; cursor: pointer; }
   /* Prevent tap highlight flash on interactive elements */
   button, a, .contact-card, .filter-chip, .tag-pill, .nav-item, .mobile-nav-item {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== Device-consistency fixes (real iOS / Android) ===== */
+  /* Prevent iOS Safari from auto-zooming on focus: input font ≥ 16px */
+  .form-input,
+  input.form-input,
+  select.form-input,
+  textarea.form-input {
+    font-size: 16px !important;
+    line-height: 1.35;
+  }
+  /* Date inputs render inconsistently on iOS — normalize height/appearance */
+  input[type="date"].form-input,
+  input[type="datetime-local"].form-input,
+  input[type="time"].form-input {
+    min-height: 42px;
+    -webkit-appearance: none;
+    appearance: none;
+    background-clip: padding-box;
+  }
+  /* Contact edit form: record-start-date row should wrap, not overflow */
+  #contact-form .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+  }
+  #contact-form .flex.items-center.gap-2 > .form-input.flex-1 {
+    min-width: 60%;
+  }
+  /* Contact methods rows on narrow phones: wrap value/buttons cleanly */
+  .method-row { flex-wrap: wrap; }
+  .method-row .form-input.w-20 { width: 88px; }
+  .method-row > .form-input.flex-1 { min-width: 60%; }
+  /* Detail page header (avatar + name + actions) — ensure no overflow */
+  #modal-content h2.text-lg,
+  #modal-content h2.text-xl { font-size: 1.05rem; line-height: 1.3; }
+  /* Reduce inner padding for detail modal so content isn't cramped */
+  #modal-content .p-4 { padding: 14px !important; }
+  #modal-content .p-6 { padding: 16px !important; }
+  /* Detail strength rows should wrap cleanly */
+  .strength-row .flex.items-center.gap-2.mt-2 { gap: 8px; }
+  /* Edit form: more-info / personality detail grids stack */
+  #contact-form details .grid-cols-2 { grid-template-columns: 1fr !important; }
+  /* Improve tap targets across mobile UI */
+  .btn-primary, .btn-ghost, .btn-danger { min-height: 40px; }
+  /* Avoid horizontal scroll caused by long content inside detail modal */
+  #modal-content { overflow-x: hidden; }
+}
+
+/* Slightly larger phones (tablet portrait & landscape phone): allow 2-col masonry */
+@media (min-width: 480px) and (max-width: 767px) {
+  #contacts-grid {
+    column-count: 2 !important;
+    -webkit-column-count: 2 !important;
   }
 }
 

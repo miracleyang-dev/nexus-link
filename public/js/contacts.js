@@ -77,10 +77,10 @@ const Contacts = {
           ${this.currentFilter.tag ? `<button onclick="Contacts.filterTag('')" class="text-xs text-gray-500 hover:text-gray-300 ml-1 shrink-0">清除标签</button>` : ''}
         </div>` : ''}
 
-        <!-- Contact Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="contacts-grid">
+        <!-- Contact Grid (masonry / staggered layout) -->
+        <div class="columns-1 md:columns-2 xl:columns-3 gap-4" id="contacts-grid">
           ${this.contacts.length ? this.contacts.map(c => this.cardHTML(c)).join('') :
-            `<div class="col-span-full empty-state">
+            `<div class="empty-state">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               <p class="text-sm">暂无联系人</p>
             </div>`
@@ -97,7 +97,7 @@ const Contacts = {
     grid.innerHTML = this.contacts.length
       ? this.contacts.map(c => this.cardHTML(c)).join('')
       : `
-        <div class="col-span-full empty-state">
+        <div class="empty-state">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           <p class="text-sm">暂无联系人</p>
         </div>
@@ -115,7 +115,7 @@ const Contacts = {
       }))
       .filter(s => s.content);
     return `
-      <div class="contact-card p-4" onclick="Contacts.showDetail(${c.id})">
+      <div class="contact-card p-4 mb-4 break-inside-avoid" onclick="Contacts.showDetail(${c.id})">
         <div class="flex items-start gap-3">
           ${Utils.avatarHTML(c.name, 44, c.avatar_url)}
           <div class="flex-1 min-w-0">
@@ -240,7 +240,7 @@ const Contacts = {
           ${this.detailField('家乡', c.hometown, '🏠')}
           ${this.detailField('现居', c.current_city, '📍')}
           ${this.detailField('性格特征', c.personality_traits, '✦')}
-          ${c.record_start_date ? this.detailField('记录起始日', `${c.record_start_date} <span class="text-gray-500 text-[11px]">（早于此日的互动/浅社交将被拒绝）</span>`, '📅') : ''}
+          ${c.record_start_date ? this.detailField('记录起始日', `${c.record_start_date}`, '📅') : ''}
         </div>
 
         <!-- Structured Strengths -->
@@ -399,9 +399,9 @@ const Contacts = {
               <div><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}"></div>
               <div><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}"></div>
               <div class="col-span-2">
-                <label class="detail-label block mb-1">📅 专属记录起始日期 <span class="text-gray-600 text-[10px]">(选填，此人所有互动/浅社交不可早于该日)</span></label>
+                <label class="detail-label block mb-1">📅 专属记录起始日期 <span class="text-gray-600 text-[10px]">(选填，支持未来日期；保存后将自动清理此人早于该日的互动与浅社交)</span></label>
                 <div class="flex items-center gap-2">
-                  <input name="record_start_date" type="date" class="form-input flex-1" value="${c.record_start_date || ''}" max="${Utils.todayStr()}">
+                  <input name="record_start_date" type="date" class="form-input flex-1" value="${c.record_start_date || ''}">
                   <button type="button" onclick="this.previousElementSibling.value=''" class="btn-ghost text-xs px-3 py-2">清除</button>
                 </div>
               </div>
