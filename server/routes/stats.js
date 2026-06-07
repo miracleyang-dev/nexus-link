@@ -206,7 +206,7 @@ router.get('/neglected', (req, res) => {
 // GET /api/stats/ping-frequency - top 10 contacts by online ping count (浅社交)
 router.get('/ping-frequency', (req, res) => {
   try {
-    const days = parseInt(req.query.days) || 30;
+    const days = Math.max(1, Math.min(365, parseInt(req.query.days, 10) || 30));
     const data = db.prepare(`
       SELECT c.id, c.name, c.category, c.avatar_url,
              COUNT(p.date) as ping_count,
