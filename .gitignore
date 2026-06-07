@@ -5,3 +5,23 @@ data/
 *.db-shm
 .DS_Store
 .env
+.env.*
+!.env.example
+
+# logs / runtime
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.pid
+*.seed
+*.pid.lock
+
+# editor / OS
+.idea/
+.vscode/
+Thumbs.db
+
+# build / coverage
+dist/
+coverage/
