@@ -389,20 +389,27 @@ const Contacts = {
           <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city || c.record_start_date) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 contact-more-grid">
-              <div><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
-              <div><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
-              <div><label class="detail-label block mb-1">亲密度</label>
+              <div class="cm-col-1"><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
+              <div class="cm-col-1"><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
+              <div class="cm-col-1"><label class="detail-label block mb-1">亲密度</label>
                 <select name="relationship_level" class="form-input">
                   ${[1,2,3,4,5].map(i => `<option value="${i}" ${(c.relationship_level||3) == i ? 'selected' : ''}>${i} - ${'★'.repeat(i)}</option>`).join('')}
                 </select>
               </div>
-              <div><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}"></div>
-              <div><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}"></div>
-              <div class="col-span-2">
-                <label class="detail-label block mb-1">📅 专属记录起始日期 <span class="text-gray-600 text-[10px]">(选填，支持未来日期；保存后将自动清理此人早于该日的互动与浅社交)</span></label>
-                <div class="flex items-center gap-2">
-                  <input name="record_start_date" type="date" class="form-input flex-1" value="${c.record_start_date || ''}">
-                  <button type="button" onclick="this.previousElementSibling.value=''" class="btn-ghost text-xs px-3 py-2">清除</button>
+              <div class="cm-col-1"><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}" placeholder="如：杭州"></div>
+              <div class="cm-col-2"><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}" placeholder="如：上海 · 浦东"></div>
+              <div class="cm-col-2 cm-record">
+                <label class="detail-label flex items-center gap-1.5 mb-1">
+                  <span>📅 专属记录起始日期</span>
+                  <span class="text-gray-600 text-[10px] font-normal normal-case tracking-normal">(选填)</span>
+                  <button type="button" class="cm-record-info ml-auto text-gray-500 hover:text-neon-blue text-[11px]" onclick="this.closest('.cm-record').classList.toggle('cm-record-open')" aria-label="说明">
+                    <span class="cm-record-info-icon inline-flex items-center justify-center w-4 h-4 rounded-full border border-white/15">i</span>
+                  </button>
+                </label>
+                <p class="cm-record-hint text-[11px] leading-relaxed text-gray-500 mb-2">支持未来日期；保存后将自动清理此人早于该日的互动与浅社交。</p>
+                <div class="flex items-stretch gap-2">
+                  <input name="record_start_date" type="date" class="form-input flex-1 min-w-0" value="${c.record_start_date || ''}">
+                  <button type="button" onclick="this.previousElementSibling.value=''" class="btn-ghost text-xs px-3 shrink-0 whitespace-nowrap">清除</button>
                 </div>
               </div>
             </div>
