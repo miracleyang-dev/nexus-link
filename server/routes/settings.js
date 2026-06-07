@@ -160,6 +160,32 @@ router.post('/import', (req, res) => {
       return res.status(400).json({ error: '无效的备份文件格式' });
     }
 
+    // Whitelist of legal column names per table. Any column key in the user-supplied
+    // backup that is not listed here will be silently dropped before being interpolated
+    // into the INSERT statement, eliminating column-name injection risk.
+    const ALLOWED_COLS = {
+      contacts: ['id','name','avatar_url','company','position','birthday','birthday_type','zodiac','mbti','hometown','current_city','personality_traits','strengths','preferences','notes','relationship_level','category','record_start_date','created_at','updated_at'],
+      contact_methods: ['id','contact_id','type','value','created_at'],
+      tags: ['id','name','color','created_at'],
+      contact_tags: ['contact_id','tag_id'],
+      interactions: ['id','type','title','content','location','date','mood','created_at'],
+      interaction_contacts: ['interaction_id','contact_id'],
+      reminders: ['id','contact_id','title','description','remind_date','is_completed','created_at','updated_at'],
+      online_pings: ['date','contact_id','created_at'],
+      contact_strengths: ['id','contact_id','content','rating','progress','created_at','updated_at'],
+      settings: ['key','value','updated_at'],
+    };
+
+    const safeInsert = (table, rows) => {
+      if (!Array.isArray(rows) || rows.length === 0) return 0;
+      const allowed = ALLOWED_COLS[table];
+      const cols = Object.keys(rows[0]).filter(c => allowed.includes(c));
+      if (cols.length === 0) return 0;
+      const stmt = db.prepare(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
+      for (const row of rows) stmt.run(...cols.map(c => row[c]));
+      return rows.length;
+    };
+
     const importData = db.transaction(() => {
       db.prepare('DELETE FROM online_pings').run();
       db.prepare('DELETE FROM contact_strengths').run();
@@ -173,77 +199,16 @@ router.post('/import', (req, res) => {
       db.prepare('DELETE FROM settings').run();
 
       const counts = {};
-
-      if (data.contacts && data.contacts.length) {
-        const cols = Object.keys(data.contacts[0]);
-        const stmt = db.prepare(`INSERT INTO contacts (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.contacts) stmt.run(...cols.map(c => row[c]));
-        counts.contacts = data.contacts.length;
-      }
-
-      if (data.contact_methods && data.contact_methods.length) {
-        const cols = Object.keys(data.contact_methods[0]);
-        const stmt = db.prepare(`INSERT INTO contact_methods (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.contact_methods) stmt.run(...cols.map(c => row[c]));
-        counts.contact_methods = data.contact_methods.length;
-      }
-
-      if (data.tags && data.tags.length) {
-        const cols = Object.keys(data.tags[0]);
-        const stmt = db.prepare(`INSERT INTO tags (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.tags) stmt.run(...cols.map(c => row[c]));
-        counts.tags = data.tags.length;
-      }
-
-      if (data.contact_tags && data.contact_tags.length) {
-        const cols = Object.keys(data.contact_tags[0]);
-        const stmt = db.prepare(`INSERT INTO contact_tags (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.contact_tags) stmt.run(...cols.map(c => row[c]));
-        counts.contact_tags = data.contact_tags.length;
-      }
-
-      if (data.interactions && data.interactions.length) {
-        const cols = Object.keys(data.interactions[0]);
-        const stmt = db.prepare(`INSERT INTO interactions (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.interactions) stmt.run(...cols.map(c => row[c]));
-        counts.interactions = data.interactions.length;
-      }
-
-      if (data.interaction_contacts && data.interaction_contacts.length) {
-        const cols = Object.keys(data.interaction_contacts[0]);
-        const stmt = db.prepare(`INSERT INTO interaction_contacts (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.interaction_contacts) stmt.run(...cols.map(c => row[c]));
-        counts.interaction_contacts = data.interaction_contacts.length;
-      }
-
-      if (data.reminders && data.reminders.length) {
-        const cols = Object.keys(data.reminders[0]);
-        const stmt = db.prepare(`INSERT INTO reminders (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.reminders) stmt.run(...cols.map(c => row[c]));
-        counts.reminders = data.reminders.length;
-      }
-
-      if (data.online_pings && data.online_pings.length) {
-        const cols = Object.keys(data.online_pings[0]);
-        const stmt = db.prepare(`INSERT INTO online_pings (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.online_pings) stmt.run(...cols.map(c => row[c]));
-        counts.online_pings = data.online_pings.length;
-      }
-
-      if (data.contact_strengths && data.contact_strengths.length) {
-        const cols = Object.keys(data.contact_strengths[0]);
-        const stmt = db.prepare(`INSERT INTO contact_strengths (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.contact_strengths) stmt.run(...cols.map(c => row[c]));
-        counts.contact_strengths = data.contact_strengths.length;
-      }
-
-      if (data.settings && data.settings.length) {
-        const cols = Object.keys(data.settings[0]);
-        const stmt = db.prepare(`INSERT INTO settings (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-        for (const row of data.settings) stmt.run(...cols.map(c => row[c]));
-        counts.settings = data.settings.length;
-      }
-
+      counts.contacts             = safeInsert('contacts',             data.contacts);
+      counts.contact_methods      = safeInsert('contact_methods',      data.contact_methods);
+      counts.tags                 = safeInsert('tags',                 data.tags);
+      counts.contact_tags         = safeInsert('contact_tags',         data.contact_tags);
+      counts.interactions         = safeInsert('interactions',         data.interactions);
+      counts.interaction_contacts = safeInsert('interaction_contacts', data.interaction_contacts);
+      counts.reminders            = safeInsert('reminders',            data.reminders);
+      counts.online_pings         = safeInsert('online_pings',         data.online_pings);
+      counts.contact_strengths    = safeInsert('contact_strengths',    data.contact_strengths);
+      counts.settings             = safeInsert('settings',             data.settings);
       return counts;
     });
 
