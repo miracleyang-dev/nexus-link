@@ -338,8 +338,8 @@ const Contacts = {
               ondrop="Contacts.onAvatarDrop(event)"
               onclick="document.getElementById('avatar-file-input').click()"
               style="border-radius:50%">
-              ${c.avatar_url
-                ? `<div class="avatar" style="width:56px;height:56px;overflow:hidden"><img src="${c.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`
+              ${c.avatar_url && Utils.safeImgUrl(c.avatar_url)
+                ? `<div class="avatar" style="width:56px;height:56px;overflow:hidden"><img src="${Utils.escapeAttr(Utils.safeImgUrl(c.avatar_url))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`
                 : Utils.avatarHTML(c.name || '?', 56)}
               <div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 hover:opacity-100 transition-opacity">
                 <span class="text-white text-[10px]">拖拽/点击</span>

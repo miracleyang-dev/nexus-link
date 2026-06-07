@@ -209,12 +209,38 @@ const Utils = {
   // Create avatar HTML (supports custom avatar_url)
   avatarHTML(name, size = 40, avatarUrl = null) {
     if (avatarUrl) {
-      return `<div class="avatar" style="width:${size}px;height:${size}px;overflow:hidden"><img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+      const safe = Utils.safeImgUrl(avatarUrl);
+      if (safe) {
+        return `<div class="avatar" style="width:${size}px;height:${size}px;overflow:hidden"><img src="${Utils.escapeAttr(safe)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
+      }
     }
     const [bg1, bg2] = this.avatarColor(name);
-    const initial = name.charAt(0);
+    const initial = Utils.escapeHTML((name || '?').charAt(0));
     const fontSize = Math.round(size * 0.4);
     return `<div class="avatar" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${bg1},${bg2});font-size:${fontSize}px;color:white">${initial}</div>`;
+  },
+
+  // ── Safe-rendering helpers ──
+  // Escape HTML special chars to neutralise script injection from user-supplied text.
+  escapeHTML(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+  // Escape for use inside a double-quoted HTML attribute value.
+  escapeAttr(s) { return Utils.escapeHTML(s); },
+  // Permit only http/https/data:image URLs for <img src>. Returns '' if disallowed.
+  safeImgUrl(url) {
+    if (!url) return '';
+    const s = String(url).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);/i.test(s)) return s;
+    if (s.startsWith('/') || s.startsWith('./') || s.startsWith('../')) return s;
+    return '';
   },
 
   // Relationship level stars (gold) with custom label tooltip (label only shown as tooltip)
