@@ -110,7 +110,8 @@ router.get('/', (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -158,7 +159,8 @@ router.get('/:id', (req, res) => {
 
     res.json({ ...contact, tags, recent_interactions: enrichedInteractions, strengths: strengthsList, contact_methods: contactMethods });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -204,7 +206,8 @@ router.post('/', (req, res) => {
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(contactId);
     res.status(201).json(contact);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -260,7 +263,8 @@ router.put('/:id', (req, res) => {
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
     res.json(contact);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -271,7 +275,8 @@ router.delete('/:id', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
     res.json({ message: 'Contact deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -302,7 +307,8 @@ router.post('/:id/tags', (req, res) => {
 
     res.json(tags);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -316,7 +322,8 @@ router.get('/:id/strengths', (req, res) => {
     ).all(req.params.id);
     res.json(strengths);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -342,7 +349,8 @@ router.post('/:id/strengths', (req, res) => {
     const strength = db.prepare('SELECT * FROM contact_strengths WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json(strength);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -383,7 +391,8 @@ tagsRouter.get('/', (req, res) => {
     }
     res.json(tags);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -399,7 +408,8 @@ tagsRouter.post('/', (req, res) => {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ error: 'Tag already exists' });
     }
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -410,7 +420,8 @@ tagsRouter.delete('/:id', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Tag not found' });
     res.json({ message: 'Tag deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -434,7 +445,8 @@ tagsRouter.put('/:id', (req, res) => {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ error: '标签名已存在' });
     }
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -464,7 +476,8 @@ strengthsRouter.put('/strengths/:id', (req, res) => {
     const strength = db.prepare('SELECT * FROM contact_strengths WHERE id = ?').get(req.params.id);
     res.json(strength);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -475,7 +488,8 @@ strengthsRouter.delete('/strengths/:id', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Strength not found' });
     res.json({ message: 'Strength deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 

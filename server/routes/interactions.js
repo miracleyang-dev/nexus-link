@@ -33,7 +33,8 @@ router.get('/', (req, res) => {
     const interactions = db.prepare(query).all(...params);
     res.json(interactions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -64,7 +65,8 @@ router.get('/timeline', (req, res) => {
 
     res.json(timeline);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -102,7 +104,8 @@ router.post('/', (req, res) => {
     const interaction = db.prepare('SELECT * FROM interactions WHERE id = ?').get(interactionId);
     res.status(201).json(interaction);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -113,7 +116,8 @@ router.delete('/:id', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Interaction not found' });
     res.json({ message: 'Interaction deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -141,7 +145,8 @@ pingsRouter.get('/', (req, res) => {
 
     res.json(grouped);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -163,7 +168,8 @@ pingsRouter.post('/', (req, res) => {
     db.prepare('INSERT OR IGNORE INTO online_pings (date, contact_id) VALUES (?, ?)').run(date, contact_id);
     res.status(201).json({ date, contact_id, contact_name: contact.name });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -178,7 +184,8 @@ pingsRouter.delete('/', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Ping not found' });
     res.json({ message: 'Ping removed' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 

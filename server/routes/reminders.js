@@ -44,7 +44,8 @@ router.get('/', (req, res) => {
     `).all();
     res.json(reminders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -62,7 +63,8 @@ router.get('/upcoming', (req, res) => {
     `).all();
     res.json(reminders);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -89,7 +91,8 @@ router.put('/:id', (req, res) => {
     const reminder = db.prepare('SELECT * FROM reminders WHERE id = ?').get(req.params.id);
     res.json(reminder);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -100,7 +103,8 @@ router.delete('/:id', (req, res) => {
     if (info.changes === 0) return res.status(404).json({ error: 'Reminder not found' });
     res.json({ message: 'Reminder deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 

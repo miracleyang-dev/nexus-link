@@ -16,7 +16,8 @@ router.get('/', (req, res) => {
     }
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -34,7 +35,8 @@ router.put('/custom-categories', (req, res) => {
     `).run(value);
     res.json({ message: '分类配置已保存', categories });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -52,7 +54,8 @@ router.put('/custom-interaction-types', (req, res) => {
     `).run(value);
     res.json({ message: '互动类型配置已保存', types });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -70,7 +73,8 @@ router.put('/tag-order', (req, res) => {
     `).run(value);
     res.json({ message: '标签排序已保存', order });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -88,7 +92,8 @@ router.put('/custom-category-order', (req, res) => {
     `).run(value);
     res.json({ message: '分类排序已保存', order });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -106,7 +111,8 @@ router.put('/custom-interaction-type-order', (req, res) => {
     `).run(value);
     res.json({ message: '互动类型排序已保存', order });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -124,7 +130,8 @@ router.put('/custom-star-labels', (req, res) => {
     `).run(value);
     res.json({ message: '星级标签已保存', labels });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -148,7 +155,8 @@ router.get('/export', (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=nexuslink-backup-${new Date().toISOString().slice(0,10)}.json`);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -215,7 +223,8 @@ router.post('/import', (req, res) => {
     const counts = importData();
     res.json({ message: '数据导入成功', counts });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -240,7 +249,8 @@ router.delete('/clear-all', (req, res) => {
     const counts = clearAll();
     res.json({ message: '所有数据已清空', counts });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 

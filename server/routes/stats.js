@@ -59,7 +59,8 @@ router.get('/overview', (req, res) => {
       tag_distribution: tagDistribution
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -77,7 +78,8 @@ router.get('/interaction-frequency', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -92,7 +94,8 @@ router.get('/relationship-levels', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -108,7 +111,8 @@ router.get('/monthly-interactions', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -123,7 +127,8 @@ router.get('/category-distribution', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -138,7 +143,8 @@ router.get('/interaction-types', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -156,7 +162,8 @@ router.get('/mood-trend', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -172,7 +179,8 @@ router.get('/city-distribution', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -199,7 +207,8 @@ router.get('/neglected', (req, res) => {
     `).all();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
@@ -220,7 +229,8 @@ router.get('/ping-frequency', (req, res) => {
     `).all(days);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: '服务器内部错误' });
   }
 });
 
