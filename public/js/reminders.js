@@ -107,7 +107,7 @@ const Reminders = {
       <div class="glass-card p-4 flex items-center gap-4">
         <div class="type-icon text-lg" style="background:rgba(236,72,153,0.15)">🎂</div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-white">${r.title}</p>
+          <p class="text-sm font-medium text-white">${Utils.escapeHTML(r.title)}</p>
           <p class="text-xs text-gray-400">${dateDisplay}</p>
         </div>
         <span class="text-xs ${urgencyClass} shrink-0">${daysText}</span>

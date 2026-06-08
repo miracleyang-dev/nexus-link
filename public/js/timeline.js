@@ -91,7 +91,7 @@ const Timeline = {
       <div class="flex gap-3 mb-6">
         <select onchange="Timeline.filterByContact(this.value)" class="form-input w-48">
           <option value="">全部联系人</option>
-          ${this.contacts.map(c => `<option value="${c.id}" ${this.filterContactId == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+          ${this.contacts.map(c => `<option value="${c.id}" ${this.filterContactId == c.id ? 'selected' : ''}>${Utils.escapeHTML(c.name)}</option>`).join('')}
         </select>
       </div>
 
@@ -127,14 +127,14 @@ const Timeline = {
             <div class="type-icon" style="background:${Utils.hexAlpha(t.color, 0x20)};color:${t.color}">${t.icon}</div>
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <h4 class="font-semibold text-white text-sm">${i.title}</h4>
+                <h4 class="font-semibold text-white text-sm">${Utils.escapeHTML(i.title)}</h4>
                 <span class="mood-indicator">${Utils.moods[i.mood] || ''}</span>
               </div>
               <p class="text-xs text-gray-400 mb-1">
-                <span class="text-neon-blue">${contactNames}</span> · ${t.label} · ${Utils.formatDate(i.date)}
-                ${i.location ? ` · 📍 ${i.location}` : ''}
+                <span class="text-neon-blue">${Utils.escapeHTML(contactNames)}</span> · ${t.label} · ${Utils.formatDate(i.date)}
+                ${i.location ? ` · 📍 ${Utils.escapeHTML(i.location)}` : ''}
               </p>
-              ${i.content ? `<p class="text-sm text-gray-300 mt-2">${i.content}</p>` : ''}
+              ${i.content ? `<p class="text-sm text-gray-300 mt-2">${Utils.escapeHTML(i.content).replace(/\n/g, '<br>')}</p>` : ''}
             </div>
           </div>
           <button onclick="Timeline.deleteItem(${i.id})" class="text-gray-600 hover:text-red-400 transition-colors text-xs p-1" title="删除">✕</button>
@@ -174,7 +174,7 @@ const Timeline = {
       <div class="flex flex-wrap items-center gap-3 mb-5">
         <select onchange="Timeline.filterPingsByContact(this.value)" class="form-input w-48 text-xs">
           <option value="">全部联系人</option>
-          ${this.contacts.map(c => `<option value="${c.id}" ${this.pingFilterContactId == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+          ${this.contacts.map(c => `<option value="${c.id}" ${this.pingFilterContactId == c.id ? 'selected' : ''}>${Utils.escapeHTML(c.name)}</option>`).join('')}
         </select>
         <div class="text-[11px] text-gray-500">
           今日 <span class="text-neon-green font-semibold">${todayCount}</span> · 近 7 天 <span class="text-neon-blue font-semibold">${weekPings}</span>
@@ -196,7 +196,7 @@ const Timeline = {
           ${(this.pings[todayStr] || []).filter(matchFilter).map(p => `
             <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neon-green/10 border border-neon-green/20 group">
               ${Utils.avatarHTML(p.contact_name, 22, p.avatar_url)}
-              <span class="text-xs text-gray-200">${p.contact_name}</span>
+              <span class="text-xs text-gray-200">${Utils.escapeHTML(p.contact_name)}</span>
               <button onclick="Timeline.removePing('${todayStr}', ${p.contact_id})" class="text-gray-600 hover:text-red-400 text-[10px] ml-0.5 opacity-60 group-hover:opacity-100 transition-opacity" title="移除">✕</button>
             </div>
           `).join('')}
@@ -222,7 +222,7 @@ const Timeline = {
                   ${dayPings.length ? dayPings.map(p => `
                     <div class="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.03] border border-white/5 group">
                       ${Utils.avatarHTML(p.contact_name, 18, p.avatar_url)}
-                      <span class="text-[11px] text-gray-400">${p.contact_name}</span>
+                      <span class="text-[11px] text-gray-400">${Utils.escapeHTML(p.contact_name)}</span>
                       <button onclick="Timeline.removePing('${dateStr}', ${p.contact_id})" class="text-gray-600 hover:text-red-400 text-[10px] ml-0.5 opacity-60 group-hover:opacity-100 transition-opacity" title="移除">✕</button>
                     </div>
                   `).join('') : '<span class="text-[11px] text-gray-600 self-center">无记录</span>'}
@@ -313,7 +313,7 @@ const Timeline = {
         const hint = already ? '<span class="text-[10px] text-gray-500 ml-1">已打卡</span>' : '';
         return `<div class="${cls}" data-cid="${c.id}" onclick="Timeline._togglePingSheetPick(${c.id})">
           ${Utils.avatarHTML(c.name, 22, c.avatar_url)}
-          <span>${c.name}</span>
+          <span>${Utils.escapeHTML(c.name)}</span>
           ${hint}
         </div>`;
       }).join('')}
@@ -414,7 +414,7 @@ const Timeline = {
               ${this.contacts.map(c => `
                 <label class="tag-pill cursor-pointer text-xs" style="color:#9ca3af;border-color:rgba(156,163,175,0.3);background:rgba(156,163,175,0.05)">
                   <input type="checkbox" name="contact_ids" value="${c.id}" class="hidden peer" onchange="this.parentElement.style.borderColor=this.checked?'#00d4ff':'rgba(156,163,175,0.3)';this.parentElement.style.color=this.checked?'#00d4ff':'#9ca3af';this.parentElement.style.background=this.checked?'rgba(0,212,255,0.1)':'rgba(156,163,175,0.05)'">
-                  ${c.name}
+                  ${Utils.escapeHTML(c.name)}
                 </label>
               `).join('')}
             </div>
@@ -423,7 +423,7 @@ const Timeline = {
           <div><label class="detail-label block mb-1">联系人 *</label>
             <select name="contact_id_single" class="form-input" required>
               <option value="">选择联系人</option>
-              ${this.contacts.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+              ${this.contacts.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.name)}</option>`).join('')}
             </select>
           </div>
           `}

@@ -72,7 +72,7 @@ const Contacts = {
         ${this.tags.length ? `
         <div class="flex gap-2 mb-6 filter-scroll">
           ${this.tags.map(t => `
-            <button onclick="Contacts.filterTag('${t.name}')" class="tag-pill cursor-pointer ${this.currentFilter.tag === t.name ? 'ring-1 ring-offset-1 ring-offset-surface-1' : ''}" style="color:${t.color};border-color:${Utils.hexAlpha(t.color, 0x40)};background:${Utils.hexAlpha(t.color, 0x15)}">${t.name}${t.contact_count ? ` (${t.contact_count})` : ''}</button>
+            <button onclick="Contacts.filterTag('${Utils.escapeAttr(t.name).replace(/'/g, "\\'")}')" class="tag-pill cursor-pointer ${this.currentFilter.tag === t.name ? 'ring-1 ring-offset-1 ring-offset-surface-1' : ''}" style="color:${t.color};border-color:${Utils.hexAlpha(t.color, 0x40)};background:${Utils.hexAlpha(t.color, 0x15)}">${Utils.escapeHTML(t.name)}${t.contact_count ? ` (${t.contact_count})` : ''}</button>
           `).join('')}
           ${this.currentFilter.tag ? `<button onclick="Contacts.filterTag('')" class="text-xs text-gray-500 hover:text-gray-300 ml-1 shrink-0">清除标签</button>` : ''}
         </div>` : ''}
@@ -120,10 +120,10 @@ const Contacts = {
           ${Utils.avatarHTML(c.name, 44, c.avatar_url)}
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <h3 class="font-semibold text-white truncate">${c.name}</h3>
+              <h3 class="font-semibold text-white truncate">${Utils.escapeHTML(c.name)}</h3>
               ${Utils.categoryBadge(c.category)}
             </div>
-            <p class="text-xs text-gray-400 truncate">${[c.company, c.position].filter(Boolean).join(' · ') || '暂无职位信息'}</p>
+            <p class="text-xs text-gray-400 truncate">${Utils.escapeHTML([c.company, c.position].filter(Boolean).join(' · ')) || '暂无职位信息'}</p>
           </div>
           <div class="shrink-0">${Utils.levelDots(c.relationship_level)}</div>
         </div>
@@ -131,7 +131,7 @@ const Contacts = {
           <div class="mt-3 space-y-1.5">
             ${strengthsPreview.map(s => `
               <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
-                <span class="truncate">💪 ${s.content}</span>
+                <span class="truncate">💪 ${Utils.escapeHTML(s.content)}</span>
                 <span class="text-[11px] text-amber-400 shrink-0">${Math.max(0, Math.min(5, s.rating))}★</span>
               </div>
             `).join('')}
@@ -140,8 +140,8 @@ const Contacts = {
         ${tags.length ? `<div class="flex flex-wrap gap-1.5 mt-3">${tags.slice(0, 3).map(t => Utils.tagPill(t)).join('')}${tags.length > 3 ? `<span class="text-[10px] text-gray-500 self-center">+${tags.length - 3}</span>` : ''}</div>` : ''}
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
           <div class="flex items-center gap-3 text-[11px] text-gray-500">
-            ${c.mbti ? `<span class="font-mono" style="color:${Utils.mbtiColor(c.mbti)}">${c.mbti}</span>` : ''}
-            ${c.zodiac ? `<span>${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : ''}
+            ${c.mbti ? `<span class="font-mono" style="color:${Utils.mbtiColor(c.mbti)}">${Utils.escapeHTML(c.mbti)}</span>` : ''}
+            ${c.zodiac ? `<span>${Utils.zodiacEmoji(c.zodiac)} ${Utils.escapeHTML(c.zodiac)}</span>` : ''}
           </div>
           ${c.birthday ? `<span class="text-[11px] text-gray-500">🎂 ${c.birthday_type === 'lunar' ? Utils.lunarDateLabel(c.birthday) : c.birthday.slice(5)}</span>` : ''}
         </div>
@@ -192,8 +192,8 @@ const Contacts = {
           <div class="flex items-center gap-3 sm:gap-4 min-w-0">
             ${Utils.avatarHTML(c.name, 48, c.avatar_url)}
             <div class="min-w-0">
-              <h2 class="text-lg sm:text-xl font-bold text-white truncate">${c.name}</h2>
-              <p class="text-xs sm:text-sm text-gray-400 truncate">${[c.company, c.position].filter(Boolean).join(' · ') || ''}</p>
+              <h2 class="text-lg sm:text-xl font-bold text-white truncate">${Utils.escapeHTML(c.name)}</h2>
+              <p class="text-xs sm:text-sm text-gray-400 truncate">${Utils.escapeHTML([c.company, c.position].filter(Boolean).join(' · ')) || ''}</p>
               <div class="flex items-center gap-2 mt-1 flex-wrap">
                 ${Utils.categoryBadge(c.category)}
                 ${Utils.levelDots(c.relationship_level)}
@@ -213,8 +213,8 @@ const Contacts = {
           <div class="space-y-1.5">
             ${methods.map(m => `
               <div class="flex items-center gap-2 text-sm">
-                <span class="text-[11px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">${m.type}</span>
-                <span class="text-gray-200">${m.value}</span>
+                <span class="text-[11px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400">${Utils.escapeHTML(m.type)}</span>
+                <span class="text-gray-200">${Utils.escapeHTML(m.value)}</span>
               </div>
             `).join('')}
           </div>
@@ -233,14 +233,14 @@ const Contacts = {
               const lunarConv = Utils.solarToLunar(c.birthday);
               birthdayDisplay = `${solarDisplay}` + (lunarConv ? ` <span class="text-gray-500">(农历 ${lunarConv.lunarChinese})</span>` : '');
             }
-            const zodiacText = c.zodiac ? ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${c.zodiac}</span>` : '';
-            return this.detailField('生日', `${birthdayDisplay}${zodiacText}`, '🎂');
+            const zodiacText = c.zodiac ? ` <span class="ml-1">${Utils.zodiacEmoji(c.zodiac)} ${Utils.escapeHTML(c.zodiac)}</span>` : '';
+            return this.detailField('生日', `${birthdayDisplay}${zodiacText}`, '🎂', true);
           })() : ''}
           ${this.detailField('MBTI', c.mbti, '🧠')}
           ${this.detailField('家乡', c.hometown, '🏠')}
           ${this.detailField('现居', c.current_city, '📍')}
           ${this.detailField('性格特征', c.personality_traits, '✦')}
-          ${c.record_start_date ? this.detailField('记录起始日', `${c.record_start_date}`, '📅') : ''}
+          ${c.record_start_date ? this.detailField('记录起始日', c.record_start_date, '📅') : ''}
         </div>
 
         <!-- Structured Strengths -->
@@ -255,7 +255,7 @@ const Contacts = {
                 return `<div class="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1.5">
-                      <span class="text-sm text-gray-200">${s.content}</span>
+                      <span class="text-sm text-gray-200">${Utils.escapeHTML(s.content)}</span>
                     </div>
                     <div class="flex items-center gap-3">
                       <div class="flex items-center gap-0.5">${Utils.ratingStars(s.rating, 11)}</div>
@@ -268,8 +268,8 @@ const Contacts = {
           ` : '<p class="text-sm text-gray-500">暂无记录，点击编辑添加</p>'}
         </div>
 
-        ${c.preferences ? `<div class="detail-section"><div class="detail-label">❤️ 兴趣偏好</div><div class="detail-value">${c.preferences}</div></div>` : ''}
-        ${c.notes ? `<div class="detail-section"><div class="detail-label">📝 备注</div><div class="detail-value">${c.notes}</div></div>` : ''}
+        ${c.preferences ? `<div class="detail-section"><div class="detail-label">❤️ 兴趣偏好</div><div class="detail-value">${Utils.escapeHTML(c.preferences).replace(/\n/g, '<br>')}</div></div>` : ''}
+        ${c.notes ? `<div class="detail-section"><div class="detail-label">📝 备注</div><div class="detail-value">${Utils.escapeHTML(c.notes).replace(/\n/g, '<br>')}</div></div>` : ''}
 
         <!-- Tags -->
         ${tags.length ? `<div class="detail-section"><div class="detail-label mb-2">🏷️ 标签</div><div class="flex flex-wrap gap-2">${tags.map(t => Utils.tagPill(t)).join('')}</div></div>` : ''}
@@ -278,7 +278,7 @@ const Contacts = {
         <div class="detail-section">
           <div class="flex items-center justify-between mb-3">
             <div class="detail-label">📅 最近互动</div>
-            <button onclick="Contacts.showAddInteractionModal(${c.id},'${c.name}')" class="text-xs text-neon-blue hover:underline">+ 添加互动</button>
+            <button data-action="add-interaction" data-id="${c.id}" data-name="${Utils.escapeAttr(c.name)}" class="text-xs text-neon-blue hover:underline">+ 添加互动</button>
           </div>
           ${interactions.length ? `
             <div class="space-y-2">
@@ -288,8 +288,8 @@ const Contacts = {
                 return `<div class="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02]">
                   <div class="type-icon" style="background:${Utils.hexAlpha(t.color, 0x20)};color:${t.color}">${t.icon}</div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm text-gray-200 truncate">${i.title}</p>
-                    <p class="text-[11px] text-gray-500">${Utils.formatDate(i.date)} · ${t.label}${names ? ` · ${names}` : ''}</p>
+                    <p class="text-sm text-gray-200 truncate">${Utils.escapeHTML(i.title)}</p>
+                    <p class="text-[11px] text-gray-500">${Utils.formatDate(i.date)} · ${t.label}${names ? ` · ${Utils.escapeHTML(names)}` : ''}</p>
                   </div>
                   <span class="mood-indicator">${Utils.moods[i.mood] || ''}</span>
                 </div>`;
@@ -301,9 +301,10 @@ const Contacts = {
     `);
   },
 
-  detailField(label, value, icon) {
+  detailField(label, value, icon, rawHtml = false) {
     if (!value) return '';
-    return `<div><div class="detail-label">${icon} ${label}</div><div class="detail-value">${value}</div></div>`;
+    const content = rawHtml ? value : Utils.escapeHTML(value);
+    return `<div><div class="detail-label">${icon} ${label}</div><div class="detail-value">${content}</div></div>`;
   },
 
   async showAddModal() {
@@ -346,20 +347,20 @@ const Contacts = {
               </div>
             </div>
             <input type="file" id="avatar-file-input" accept="image/*" class="hidden" onchange="Contacts.onAvatarFileSelect(event)">
-            <input type="hidden" name="avatar_url" value="${c.avatar_url || ''}">
+            <input type="hidden" name="avatar_url" value="${Utils.escapeAttr(c.avatar_url || '')}">
             <div class="text-xs text-gray-500">拖拽或点击头像更换<br>支持 JPG/PNG 格式</div>
           </div>
 
           <!-- Basic Info -->
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="detail-label block mb-1">姓名 *</label><input name="name" class="form-input" required value="${c.name || ''}"></div>
+            <div><label class="detail-label block mb-1">姓名 *</label><input name="name" class="form-input" required value="${Utils.escapeAttr(c.name || '')}"></div>
             <div><label class="detail-label block mb-1">分类</label>
               <select name="category" class="form-input">
                 ${Object.entries(Utils.categories).map(([k, v]) => `<option value="${k}" ${c.category === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}
               </select>
             </div>
-            <div><label class="detail-label block mb-1">公司 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="company" class="form-input" value="${c.company || ''}"></div>
-            <div><label class="detail-label block mb-1">职位 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="position" class="form-input" value="${c.position || ''}"></div>
+            <div><label class="detail-label block mb-1">公司 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="company" class="form-input" value="${Utils.escapeAttr(c.company || '')}"></div>
+            <div><label class="detail-label block mb-1">职位 <span class="text-gray-600 text-[10px]">(选填)</span></label><input name="position" class="form-input" value="${Utils.escapeAttr(c.position || '')}"></div>
           </div>
 
           <!-- Contact Methods (dynamic) -->
@@ -389,15 +390,15 @@ const Contacts = {
           <details class="border border-white/5 rounded-lg" ${(c.zodiac || c.mbti || c.hometown || c.current_city || c.record_start_date) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">更多个人信息 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 contact-more-grid">
-              <div class="cm-col-1"><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${c.zodiac || ''}" placeholder="如：双子座"></div>
-              <div class="cm-col-1"><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${c.mbti || ''}" placeholder="如：INFJ" maxlength="4"></div>
+              <div class="cm-col-1"><label class="detail-label block mb-1">星座</label><input name="zodiac" class="form-input" value="${Utils.escapeAttr(c.zodiac || '')}" placeholder="如：双子座"></div>
+              <div class="cm-col-1"><label class="detail-label block mb-1">MBTI</label><input name="mbti" class="form-input" value="${Utils.escapeAttr(c.mbti || '')}" placeholder="如：INFJ" maxlength="4"></div>
               <div class="cm-col-1"><label class="detail-label block mb-1">亲密度</label>
                 <select name="relationship_level" class="form-input">
                   ${[1,2,3,4,5].map(i => `<option value="${i}" ${(c.relationship_level||3) == i ? 'selected' : ''}>${i} - ${'★'.repeat(i)}</option>`).join('')}
                 </select>
               </div>
-              <div class="cm-col-1"><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${c.hometown || ''}" placeholder="如：杭州"></div>
-              <div class="cm-col-2"><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${c.current_city || ''}" placeholder="如：上海 · 浦东"></div>
+              <div class="cm-col-1"><label class="detail-label block mb-1">家乡</label><input name="hometown" class="form-input" value="${Utils.escapeAttr(c.hometown || '')}" placeholder="如：杭州"></div>
+              <div class="cm-col-2"><label class="detail-label block mb-1">现居城市</label><input name="current_city" class="form-input" value="${Utils.escapeAttr(c.current_city || '')}" placeholder="如：上海 · 浦东"></div>
               <div class="cm-col-2 cm-record">
                 <label class="detail-label flex items-center gap-1.5 mb-1">
                   <span>📅 专属记录起始日期</span>
@@ -408,7 +409,7 @@ const Contacts = {
                 </label>
                 <p class="cm-record-hint text-[11px] leading-relaxed text-gray-500 mb-2">支持未来日期；保存后将自动清理此人早于该日的互动与浅社交。</p>
                 <div class="flex items-stretch gap-2">
-                  <input name="record_start_date" type="date" class="form-input flex-1 min-w-0" value="${c.record_start_date || ''}">
+                  <input name="record_start_date" type="date" class="form-input flex-1 min-w-0" value="${Utils.escapeAttr(c.record_start_date || '')}">
                   <button type="button" onclick="this.previousElementSibling.value=''" class="btn-ghost text-xs px-3 shrink-0 whitespace-nowrap">清除</button>
                 </div>
               </div>
@@ -419,9 +420,9 @@ const Contacts = {
           <details class="border border-white/5 rounded-lg" ${(c.personality_traits || c.strengths || c.preferences || c.notes) ? 'open' : ''}>
             <summary class="px-4 py-2.5 text-sm text-gray-400 cursor-pointer hover:text-gray-200 select-none">性格与备注 <span class="text-gray-600 text-[10px]">(选填)</span></summary>
             <div class="p-4 pt-2 space-y-4">
-              <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${c.personality_traits || ''}" placeholder="如：果断,有领导力,目标导向"></div>
-              <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${c.preferences || ''}</textarea></div>
-              <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${c.notes || ''}</textarea></div>
+              <div><label class="detail-label block mb-1">性格特征</label><input name="personality_traits" class="form-input" value="${Utils.escapeAttr(c.personality_traits || '')}" placeholder="如：果断,有领导力,目标导向"></div>
+              <div><label class="detail-label block mb-1">兴趣偏好</label><textarea name="preferences" class="form-input" rows="2" placeholder="爱好、喜欢的事物...">${Utils.escapeHTML(c.preferences || '')}</textarea></div>
+              <div><label class="detail-label block mb-1">备注</label><textarea name="notes" class="form-input" rows="3" placeholder="其他重要信息...">${Utils.escapeHTML(c.notes || '')}</textarea></div>
             </div>
           </details>
 
@@ -442,7 +443,7 @@ const Contacts = {
               ${Contacts.tags.map(t => {
                 const checked = (c.tags || []).some(ct => ct.id === t.id);
                 return `<label class="tag-pill cursor-pointer contact-tag-pill" data-color="${t.color}">
-                  <input type="checkbox" name="tags" value="${t.id}" ${checked ? 'checked' : ''} class="hidden"> ${t.name}
+                  <input type="checkbox" name="tags" value="${t.id}" ${checked ? 'checked' : ''} class="hidden"> ${Utils.escapeHTML(t.name)}
                 </label>`;
               }).join('')}
             </div>

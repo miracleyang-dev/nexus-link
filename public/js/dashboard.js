@@ -74,7 +74,7 @@ const Dashboard = {
                   <span class="text-[11px] text-gray-500 w-4 text-right">${i+1}</span>
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs text-gray-200 truncate">${d.name}</span>
+                      <span class="text-xs text-gray-200 truncate">${Utils.escapeHTML(d.name)}</span>
                       <span class="text-[11px] text-gray-400">${d.interaction_count}次</span>
                     </div>
                     <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
@@ -109,7 +109,7 @@ const Dashboard = {
                 const maxC = cityDist[0]?.count || 1;
                 const pct = Math.round((d.count / maxC) * 100);
                 return `<div class="flex items-center gap-3">
-                  <span class="text-xs text-gray-300 w-14 truncate">${d.city}</span>
+                  <span class="text-xs text-gray-300 w-14 truncate">${Utils.escapeHTML(d.city)}</span>
                   <div class="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
                     <div class="h-full rounded-full bg-neon-blue/60" style="width:${pct}%"></div>
                   </div>
@@ -128,7 +128,7 @@ const Dashboard = {
               ${(overview.tag_distribution || []).map(t => `
                 <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/5" style="background:${Utils.hexAlpha(t.color, 0x10)}">
                   <div class="w-2 h-2 rounded-full" style="background:${t.color}"></div>
-                  <span class="text-xs" style="color:${t.color}">${t.name}</span>
+                  <span class="text-xs" style="color:${t.color}">${Utils.escapeHTML(t.name)}</span>
                   <span class="text-[10px] text-gray-500 ml-0.5">${t.count}</span>
                 </div>
               `).join('')}
@@ -145,7 +145,7 @@ const Dashboard = {
                 return `<div class="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02]">
                   ${Utils.avatarHTML(d.name, 28)}
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs text-gray-200 truncate">${d.name}</p>
+                    <p class="text-xs text-gray-200 truncate">${Utils.escapeHTML(d.name)}</p>
                     <p class="text-[10px] text-gray-500">上次: ${Utils.relativeTime(d.last_interaction)}</p>
                   </div>
                   <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background:${Utils.hexAlpha(levelColor, 0x15)};color:${d.category === 'family' ? '#ef4444' : levelColor}">
