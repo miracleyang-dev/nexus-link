@@ -10,6 +10,26 @@ const Contacts = {
       this.loadContacts(),
     ]);
     this.render();
+    this._bindDelegatedActions();
+  },
+
+  // Delegated click handler — replaces fragile inline `onclick="...${c.name}..."`
+  // strings. Wired once (idempotent) at module init.
+  _bindDelegatedActions() {
+    if (this._delegationBound) return;
+    this._delegationBound = true;
+    document.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id ? Number(btn.dataset.id) : null;
+      const name = btn.dataset.name || '';
+      switch (action) {
+        case 'edit-contact':       Contacts.showEditModal(id); break;
+        case 'delete-contact':     Contacts.confirmDelete(id, name); break;
+        case 'add-interaction':    Contacts.showAddInteractionModal(id, name); break;
+      }
+    });
   },
 
   async loadContacts() {
@@ -201,8 +221,8 @@ const Contacts = {
             </div>
           </div>
           <div class="flex gap-2 shrink-0">
-            <button onclick="Contacts.showEditModal(${c.id})" class="btn-ghost text-xs px-3 py-2">编辑</button>
-            <button onclick="Contacts.confirmDelete(${c.id},'${c.name.replace(/'/g, "\\'")}')" class="btn-danger text-xs px-3 py-2">删除</button>
+            <button data-action="edit-contact" data-id="${c.id}" class="btn-ghost text-xs px-3 py-2">编辑</button>
+            <button data-action="delete-contact" data-id="${c.id}" data-name="${Utils.escapeAttr(c.name)}" class="btn-danger text-xs px-3 py-2">删除</button>
           </div>
         </div>
 
