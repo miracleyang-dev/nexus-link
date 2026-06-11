@@ -28,22 +28,44 @@
 
 ## 快速开始
 
+先决条件：安装 Node.js（建议 16+）。
+
+本地运行：
+
 ```bash
 npm install
 npm start
 ```
 
-应用默认运行在 `http://localhost:3000`。首次启动会自动创建 SQLite 数据库并写入示例数据（默认路径为 `data/app.db`）。
+默认在 `http://localhost:3000` 提供服务。服务入口为 `server/index.js`，`npm start` 等同于 `node server/index.js`。
 
-### 环境变量
+首次启动会自动创建 `data/` 目录并在其中生成 SQLite 数据库（默认 `data/app.db`），并且会在空数据库时写入示例数据。
+
+环境变量（可选）：
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `PORT` | `3000` | 服务端口 |
-| `DB_PATH` | `data/app.db` | SQLite 数据库文件路径 |
-| `NODE_ENV` | `(not set)` | 运行环境 |
+| PORT | `3000` | 服务端口 |
+| DB_PATH | `data/app.db` | SQLite 数据库文件路径（可传绝对路径，例如 `/data/nexus.db`） |
+| NODE_ENV | `(not set)` | 运行环境 |
 
-健康检查：`GET /health`
+健康检查：`GET /health`。
+
+使用 Docker：
+
+构建镜像：
+
+```bash
+docker build -t nexus-link:latest .
+```
+
+运行容器（并挂载宿主目录以持久化数据库）：
+
+```bash
+docker run -p 3000:3000 -v $(pwd)/data:/app/data -e PORT=3000 -e DB_PATH=/app/data/app.db nexus-link:latest
+```
+
+在云平台（如 Railway）部署时，推荐将 `DB_PATH` 指向平台提供的持久化卷（例如 `/data/nexus.db`）。
 
 ## 数据结构概览
 
