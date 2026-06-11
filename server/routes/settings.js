@@ -187,11 +187,25 @@ router.post('/import', (req, res) => {
     const safeInsert = (table, rows) => {
       if (!Array.isArray(rows) || rows.length === 0) return 0;
       const allowed = ALLOWED_COLS[table];
-      const cols = Object.keys(rows[0]).filter(c => allowed.includes(c));
-      if (cols.length === 0) return 0;
-      const stmt = db.prepare(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
-      for (const row of rows) stmt.run(...cols.map(c => row[c]));
-      return rows.length;
+      const stmtCache = new Map();
+      let inserted = 0;
+
+      for (const row of rows) {
+        if (!row || typeof row !== 'object') continue;
+        const cols = Object.keys(row).filter(c => allowed.includes(c) && row[c] !== undefined);
+        if (cols.length === 0) continue;
+        const key = cols.join(',');
+        let stmt = stmtCache.get(key);
+        if (!stmt) {
+          stmt = db.prepare(`INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`);
+          stmtCache.set(key, stmt);
+        }
+        const values = cols.map(c => row[c]);
+        stmt.run(...values);
+        inserted++;
+      }
+
+      return inserted;
     };
 
     const importData = db.transaction(() => {

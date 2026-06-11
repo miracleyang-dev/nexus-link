@@ -65,7 +65,31 @@ docker build -t nexus-link:latest .
 docker run -p 3000:3000 -v $(pwd)/data:/app/data -e PORT=3000 -e DB_PATH=/app/data/app.db nexus-link:latest
 ```
 
+Windows 下示例：
+
+PowerShell:
+
+```powershell
+docker run -p 3000:3000 -v ${PWD}/data:/app/data -e PORT=3000 -e DB_PATH=/app/data/app.db nexus-link:latest
+```
+
+CMD (Windows 命令提示符):
+
+```bat
+docker run -p 3000:3000 -v %cd%\\data:/app/data -e PORT=3000 -e DB_PATH=/app/data/app.db nexus-link:latest
+```
+
+注意：在 Windows 下使用卷挂载时，请确保 Docker Desktop 已启用对宿主路径的共享，否则映射可能失败。
+
 在云平台（如 Railway）部署时，推荐将 `DB_PATH` 指向平台提供的持久化卷（例如 `/data/nexus.db`）。
+
+## 注意事项与已知问题（当前可改进的三项）
+
+- **Windows Docker 卷映射**：README 中已给出 Linux 示例，Windows 用户请使用上方 PowerShell 或 CMD 示例；在 CI/CD 或容器平台上优先使用平台卷路径（例如 `/data/nexus.db`）。
+- **标签解析的分隔符风险**：后端在 [server/routes/contacts.js] 使用 `GROUP_CONCAT` 并以冒号拼接 `id:name:color`，若标签名包含冒号会破坏解析。建议后端改为返回 JSON 或使用不会出现在标签名的分隔符，短期建议避免在标签名中使用冒号。
+- **错误信息与导入稳健性**：部分接口返回的错误信息中英文混用（例如 `Contact not found`），建议统一为中文或做 i18n；导入逻辑（[server/routes/settings.js]）使用首行字段推断列集合，若行结构不一致可能导致 NULL 值，建议在导入前做列校验与字段补齐。
+
+如需我直接修复以上任一项（例如：加入 Windows 示例、修复标签解析或增强导入逻辑），我可以继续改代码并提交补丁。
 
 ## 数据结构概览
 

@@ -55,7 +55,7 @@ router.get('/', (req, res) => {
   try {
     const { search, category, tag } = req.query;
     let query = `
-      SELECT c.*, li.last_interaction, GROUP_CONCAT(DISTINCT t.id || ':' || t.name || ':' || t.color) as tag_list
+      SELECT c.*, li.last_interaction
       FROM contacts c
       LEFT JOIN (
         SELECT ic.contact_id, MAX(i.date) AS last_interaction
@@ -63,8 +63,6 @@ router.get('/', (req, res) => {
         JOIN interactions i ON i.id = ic.interaction_id
         GROUP BY ic.contact_id
       ) li ON li.contact_id = c.id
-      LEFT JOIN contact_tags ct ON c.id = ct.contact_id
-      LEFT JOIN tags t ON ct.tag_id = t.id
     `;
     const conditions = [];
     const params = [];
@@ -95,16 +93,18 @@ router.get('/', (req, res) => {
       const strengths = db.prepare(
         'SELECT content, rating FROM contact_strengths WHERE contact_id = ? ORDER BY rating DESC LIMIT 2'
       ).all(c.id);
+
+      // Load tags per-contact to avoid delimiter/parsing issues
+      const tags = db.prepare(`
+        SELECT t.* FROM tags t
+        JOIN contact_tags ct ON t.id = ct.tag_id
+        WHERE ct.contact_id = ?
+      `).all(c.id);
+
       return {
         ...c,
         strengths_preview: strengths,
-        tags: c.tag_list
-          ? c.tag_list.split(',').map(t => {
-              const [id, name, color] = t.split(':');
-              return { id: Number(id), name, color };
-            })
-          : [],
-        tag_list: undefined
+        tags: tags || []
       };
     });
 
@@ -119,7 +119,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    if (!contact) return res.status(404).json({ error: '联系人未找到' });
 
     const tags = db.prepare(`
       SELECT t.* FROM tags t
@@ -177,7 +177,7 @@ router.post('/', (req, res) => {
     for (const f of fields) {
       data[f] = req.body[f] !== undefined ? req.body[f] : null;
     }
-    if (!data.name) return res.status(400).json({ error: 'Name is required' });
+    if (!data.name) return res.status(400).json({ error: '姓名为必填项' });
 
     const cols = fields.filter(f => data[f] !== null);
     const placeholders = cols.map(c => '@' + c).join(', ');
@@ -232,7 +232,7 @@ router.put('/:id', (req, res) => {
       }
     }
     if (updates.length === 0 && !req.body.contact_methods) {
-      return res.status(400).json({ error: 'No fields to update' });
+      return res.status(400).json({ error: '没有要更新的字段' });
     }
 
     if (updates.length > 0) {
@@ -272,8 +272,8 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const info = db.prepare('DELETE FROM contacts WHERE id = ?').run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
-    res.json({ message: 'Contact deleted' });
+    if (info.changes === 0) return res.status(404).json({ error: '联系人未找到' });
+    res.json({ message: '联系人已删除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });
@@ -288,7 +288,7 @@ router.post('/:id/tags', (req, res) => {
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
     const { tag_ids } = req.body;
-    if (!Array.isArray(tag_ids)) return res.status(400).json({ error: 'tag_ids must be an array' });
+    if (!Array.isArray(tag_ids)) return res.status(400).json({ error: 'tag_ids 必须为数组' });
 
     const assign = db.transaction((ids) => {
       db.prepare('DELETE FROM contact_tags WHERE contact_id = ?').run(contactId);
@@ -400,13 +400,13 @@ tagsRouter.get('/', (req, res) => {
 tagsRouter.post('/', (req, res) => {
   try {
     const { name, color } = req.body;
-    if (!name) return res.status(400).json({ error: 'Tag name is required' });
+    if (!name) return res.status(400).json({ error: '标签名称为必填项' });
     const info = db.prepare('INSERT INTO tags (name, color) VALUES (?, ?)').run(name, color || '#3B82F6');
     const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json(tag);
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
-      return res.status(409).json({ error: 'Tag already exists' });
+      return res.status(409).json({ error: '标签已存在' });
     }
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });
@@ -417,8 +417,8 @@ tagsRouter.post('/', (req, res) => {
 tagsRouter.delete('/:id', (req, res) => {
   try {
     const info = db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Tag not found' });
-    res.json({ message: 'Tag deleted' });
+    if (info.changes === 0) return res.status(404).json({ error: '标签未找到' });
+    res.json({ message: '标签已删除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });
@@ -430,13 +430,13 @@ tagsRouter.put('/:id', (req, res) => {
   try {
     const { name, color } = req.body;
     const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
-    if (!existing) return res.status(404).json({ error: 'Tag not found' });
+    if (!existing) return res.status(404).json({ error: '标签未找到' });
 
     const updates = [];
     const params = { id: req.params.id };
     if (name !== undefined) { updates.push('name = @name'); params.name = name; }
     if (color !== undefined) { updates.push('color = @color'); params.color = color; }
-    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    if (updates.length === 0) return res.status(400).json({ error: '没有要更新的字段' });
 
     db.prepare(`UPDATE tags SET ${updates.join(', ')} WHERE id = @id`).run(params);
     const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
@@ -457,7 +457,7 @@ const strengthsRouter = express.Router();
 strengthsRouter.put('/strengths/:id', (req, res) => {
   try {
     const existing = db.prepare('SELECT * FROM contact_strengths WHERE id = ?').get(req.params.id);
-    if (!existing) return res.status(404).json({ error: 'Strength not found' });
+    if (!existing) return res.status(404).json({ error: '优点未找到' });
 
     const fields = ['content', 'rating', 'progress'];
     const updates = [];
@@ -468,7 +468,7 @@ strengthsRouter.put('/strengths/:id', (req, res) => {
         params[f] = req.body[f];
       }
     }
-    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    if (updates.length === 0) return res.status(400).json({ error: '没有要更新的字段' });
 
     params.id = req.params.id;
     db.prepare(`UPDATE contact_strengths SET ${updates.join(', ')} WHERE id = @id`).run(params);
@@ -485,8 +485,8 @@ strengthsRouter.put('/strengths/:id', (req, res) => {
 strengthsRouter.delete('/strengths/:id', (req, res) => {
   try {
     const info = db.prepare('DELETE FROM contact_strengths WHERE id = ?').run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Strength not found' });
-    res.json({ message: 'Strength deleted' });
+    if (info.changes === 0) return res.status(404).json({ error: '优点未找到' });
+    res.json({ message: '优点已删除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });

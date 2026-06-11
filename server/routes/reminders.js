@@ -36,12 +36,12 @@ function rollExpiredBirthdays() {
 router.get('/', (req, res) => {
   try {
     rollExpiredBirthdays();
-    const reminders = db.prepare(`
-      SELECT r.*, c.name as contact_name
-      FROM reminders r
-      LEFT JOIN contacts c ON r.contact_id = c.id
-      ORDER BY r.remind_date ASC
-    `).all();
+      const reminders = db.prepare(`
+        SELECT r.*, c.name as contact_name
+        FROM reminders r
+        LEFT JOIN contacts c ON r.contact_id = c.id
+        ORDER BY r.remind_date ASC
+      `).all();
     res.json(reminders);
   } catch (err) {
     console.error(err);
@@ -100,8 +100,8 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const info = db.prepare('DELETE FROM reminders WHERE id = ?').run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Reminder not found' });
-    res.json({ message: 'Reminder deleted' });
+    if (info.changes === 0) return res.status(404).json({ error: '提醒未找到' });
+    res.json({ message: '提醒已删除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });

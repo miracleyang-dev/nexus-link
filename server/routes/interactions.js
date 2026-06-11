@@ -75,16 +75,16 @@ router.post('/', (req, res) => {
   try {
     const { contact_ids, type, title, content, location, date, mood } = req.body;
     if (!contact_ids || !Array.isArray(contact_ids) || contact_ids.length === 0) {
-      return res.status(400).json({ error: 'contact_ids array is required' });
+      return res.status(400).json({ error: '必须提供 contact_ids 数组' });
     }
     if (!title || !date) {
-      return res.status(400).json({ error: 'title and date are required' });
+      return res.status(400).json({ error: '标题和日期为必填项' });
     }
 
     // Validate all contacts exist + per-contact record start date
     for (const cid of contact_ids) {
       const contact = db.prepare('SELECT id, name, record_start_date FROM contacts WHERE id = ?').get(cid);
-      if (!contact) return res.status(404).json({ error: `Contact ${cid} not found` });
+      if (!contact) return res.status(404).json({ error: `联系人 ${cid} 未找到` });
       if (contact.record_start_date && date < contact.record_start_date) {
         return res.status(400).json({ error: `「${contact.name}」的记录起始日期为 ${contact.record_start_date}，无法保存早于此日的互动` });
       }
@@ -113,8 +113,8 @@ router.post('/', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const info = db.prepare('DELETE FROM interactions WHERE id = ?').run(req.params.id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Interaction not found' });
-    res.json({ message: 'Interaction deleted' });
+    if (info.changes === 0) return res.status(404).json({ error: '互动未找到' });
+    res.json({ message: '互动已删除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });
@@ -155,10 +155,10 @@ pingsRouter.post('/', (req, res) => {
   try {
     const { date, contact_id } = req.body;
     if (!date || !contact_id) {
-      return res.status(400).json({ error: 'date and contact_id are required' });
+      return res.status(400).json({ error: '日期和 contact_id 为必填项' });
     }
     const contact = db.prepare('SELECT id, name, record_start_date FROM contacts WHERE id = ?').get(contact_id);
-    if (!contact) return res.status(404).json({ error: 'Contact not found' });
+    if (!contact) return res.status(404).json({ error: '联系人未找到' });
 
     // Check per-contact record start date
     if (contact.record_start_date && date < contact.record_start_date) {
@@ -178,11 +178,11 @@ pingsRouter.delete('/', (req, res) => {
   try {
     const { date, contact_id } = req.query;
     if (!date || !contact_id) {
-      return res.status(400).json({ error: 'date and contact_id query params are required' });
+      return res.status(400).json({ error: '缺少 date 或 contact_id 查询参数' });
     }
     const info = db.prepare('DELETE FROM online_pings WHERE date = ? AND contact_id = ?').run(date, contact_id);
-    if (info.changes === 0) return res.status(404).json({ error: 'Ping not found' });
-    res.json({ message: 'Ping removed' });
+    if (info.changes === 0) return res.status(404).json({ error: '打卡记录未找到' });
+    res.json({ message: '打卡记录已移除' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: '服务器内部错误' });
