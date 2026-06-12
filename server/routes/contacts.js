@@ -15,11 +15,10 @@ function syncBirthdayReminder(contactId) {
   const result = getNextBirthdaySolarDate(month, day, contact.birthday_type);
   if (!result) return;
 
-  const dateStr = result.solarDate.toISOString().split('T')[0];
   db.prepare(`
     INSERT INTO reminders (contact_id, title, description, remind_date, is_completed)
     VALUES (?, ?, ?, ?, 0)
-  `).run(contact.id, `${contact.name}的生日`, `${result.calLabel} ${contact.birthday.slice(5)}`, dateStr);
+  `).run(contact.id, `${contact.name}的生日`, `${result.calLabel} ${contact.birthday.slice(5)}`, result.dateStr);
 }
 
 // Helper: purge interactions / online pings for a contact that occurred before startDate.

@@ -178,9 +178,9 @@ router.post('/import', (req, res) => {
       contact_tags: ['contact_id','tag_id'],
       interactions: ['id','type','title','content','location','date','mood','created_at'],
       interaction_contacts: ['interaction_id','contact_id'],
-      reminders: ['id','contact_id','title','description','remind_date','is_completed','created_at','updated_at'],
+      reminders: ['id','contact_id','title','description','remind_date','is_completed','created_at'],
       online_pings: ['date','contact_id','created_at'],
-      contact_strengths: ['id','contact_id','content','rating','progress','created_at','updated_at'],
+      contact_strengths: ['id','contact_id','content','rating','progress','created_at'],
       settings: ['key','value','updated_at'],
     };
 

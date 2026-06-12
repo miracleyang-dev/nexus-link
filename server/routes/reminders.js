@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { getNextBirthdaySolarDate } = require('../utils/lunar');
+const { getNextBirthdaySolarDate, formatLocalDate } = require('../utils/lunar');
 
 // Helper: roll expired birthday reminders to next year
 function rollExpiredBirthdays() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = formatLocalDate(today);
 
   // Find completed or past-date birthday reminders
   const expired = db.prepare(`
@@ -23,12 +23,11 @@ function rollExpiredBirthdays() {
     const result = getNextBirthdaySolarDate(month, day, r.birthday_type);
     if (!result) continue;
 
-    const newDateStr = result.solarDate.toISOString().split('T')[0];
     // Update the reminder to next occurrence
     db.prepare(`
       UPDATE reminders SET remind_date = ?, is_completed = 0, description = ?
       WHERE id = ?
-    `).run(newDateStr, `${result.calLabel} ${r.birthday.slice(5)}`, r.id);
+    `).run(result.dateStr, `${result.calLabel} ${r.birthday.slice(5)}`, r.id);
   }
 }
 
@@ -36,12 +35,12 @@ function rollExpiredBirthdays() {
 router.get('/', (req, res) => {
   try {
     rollExpiredBirthdays();
-      const reminders = db.prepare(`
-        SELECT r.*, c.name as contact_name
-        FROM reminders r
-        LEFT JOIN contacts c ON r.contact_id = c.id
-        ORDER BY r.remind_date ASC
-      `).all();
+    const reminders = db.prepare(`
+      SELECT r.*, c.name as contact_name
+      FROM reminders r
+      LEFT JOIN contacts c ON r.contact_id = c.id
+      ORDER BY r.remind_date ASC
+    `).all();
     res.json(reminders);
   } catch (err) {
     console.error(err);
@@ -57,7 +56,7 @@ router.get('/upcoming', (req, res) => {
       SELECT r.*, c.name as contact_name
       FROM reminders r
       LEFT JOIN contacts c ON r.contact_id = c.id
-      WHERE r.remind_date BETWEEN date('now') AND date('now', '+30 days')
+      WHERE r.remind_date BETWEEN date('now', 'localtime') AND date('now', 'localtime', '+30 days')
       AND r.is_completed = 0
       ORDER BY r.remind_date ASC
     `).all();

@@ -8,11 +8,11 @@ router.get('/overview', (req, res) => {
     const totalContacts = db.prepare('SELECT COUNT(*) as count FROM contacts').get().count;
     const interactionsThisMonth = db.prepare(`
       SELECT COUNT(*) as count FROM interactions
-      WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+      WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now', 'localtime')
     `).get().count;
     const upcomingReminders = db.prepare(`
       SELECT COUNT(*) as count FROM reminders
-      WHERE remind_date BETWEEN date('now') AND date('now', '+7 days')
+      WHERE remind_date BETWEEN date('now', 'localtime') AND date('now', 'localtime', '+7 days')
       AND is_completed = 0
     `).get().count;
     const tagDistribution = db.prepare(`
@@ -33,7 +33,7 @@ router.get('/overview', (req, res) => {
     // Contacts added this month
     const newThisMonth = db.prepare(`
       SELECT COUNT(*) as count FROM contacts
-      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now', 'localtime')
     `).get().count;
 
     // Online ping metrics (浅社交)
@@ -105,7 +105,7 @@ router.get('/monthly-interactions', (req, res) => {
     const data = db.prepare(`
       SELECT strftime('%Y-%m', date) as month, COUNT(*) as count
       FROM interactions
-      WHERE date >= date('now', '-12 months')
+      WHERE date >= date('now', 'localtime', '-12 months')
       GROUP BY month
       ORDER BY month
     `).all();
@@ -156,7 +156,7 @@ router.get('/mood-trend', (req, res) => {
              ROUND(AVG(mood), 1) as avg_mood,
              COUNT(*) as count
       FROM interactions
-      WHERE date >= date('now', '-12 months')
+      WHERE date >= date('now', 'localtime', '-12 months')
       GROUP BY month
       ORDER BY month
     `).all();
@@ -190,7 +190,7 @@ router.get('/neglected', (req, res) => {
     const data = db.prepare(`
       SELECT c.id, c.name, c.category, c.relationship_level,
              MAX(last_activity) as last_interaction,
-             CAST(julianday('now') - julianday(MAX(last_activity)) AS INTEGER) as days_since
+             CAST(julianday('now', 'localtime') - julianday(MAX(last_activity)) AS INTEGER) as days_since
       FROM contacts c
       LEFT JOIN (
         SELECT ic.contact_id, i.date as last_activity

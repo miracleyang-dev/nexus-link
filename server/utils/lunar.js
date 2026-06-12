@@ -2,13 +2,28 @@ const { Lunar, Solar } = require('lunar-javascript');
 const express = require('express');
 
 /**
+ * Format a Date object as a local-timezone YYYY-MM-DD string.
+ * Avoids the off-by-one-day bug caused by Date.prototype.toISOString,
+ * which converts to UTC and can shift the day in non-UTC server timezones.
+ *
+ * @param {Date} date
+ * @returns {string} YYYY-MM-DD (local)
+ */
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Compute the next upcoming solar date for a birthday.
  * Works for both solar and lunar birthdays.
  *
  * @param {number} month - birth month
  * @param {number} day   - birth day
  * @param {'solar'|'lunar'} type - calendar type
- * @returns {{ solarDate: Date, calLabel: string } | null}
+ * @returns {{ solarDate: Date, dateStr: string, calLabel: string } | null}
  */
 function getNextBirthdaySolarDate(month, day, type) {
   const today = new Date();
@@ -39,7 +54,7 @@ function getNextBirthdaySolarDate(month, day, type) {
     }
   }
 
-  return { solarDate, calLabel };
+  return { solarDate, dateStr: formatLocalDate(solarDate), calLabel };
 }
 
 // ── Lunar-solar date conversion API endpoint ────────────────────
@@ -84,4 +99,4 @@ lunarRouter.get('/convert', (req, res) => {
   }
 });
 
-module.exports = { getNextBirthdaySolarDate, lunarRouter };
+module.exports = { getNextBirthdaySolarDate, formatLocalDate, lunarRouter };

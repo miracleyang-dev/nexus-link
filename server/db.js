@@ -349,6 +349,7 @@ function seedDatabase() {
   // Seed birthday reminders (auto-generated from contact birthdays)
   // These will be managed by the birthday sync logic in contacts route
   const { Solar, Lunar } = require('lunar-javascript');
+  const { formatLocalDate } = require('./utils/lunar');
   const insertReminder = db.prepare(`
     INSERT INTO reminders (contact_id, title, description, remind_date, is_completed)
     VALUES (@contact_id, @title, @description, @remind_date, @is_completed)
@@ -384,7 +385,7 @@ function seedDatabase() {
       }
     }
 
-    const dateStr = solarDate.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(solarDate);
     insertReminder.run({
       contact_id: c.id,
       title: `${c.name}的生日`,
@@ -396,11 +397,11 @@ function seedDatabase() {
 
   // Seed online pings (recent days)
   const insertPing = db.prepare('INSERT OR IGNORE INTO online_pings (date, contact_id) VALUES (?, ?)');
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = formatLocalDate(today);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-  const yestStr = yesterday.toISOString().split('T')[0];
+  const yestStr = formatLocalDate(yesterday);
   const twoDaysAgo = new Date(today); twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoStr = twoDaysAgo.toISOString().split('T')[0];
+  const twoStr = formatLocalDate(twoDaysAgo);
 
   // Today: chatted with a few people
   insertPing.run(todayStr, 1); insertPing.run(todayStr, 5); insertPing.run(todayStr, 8);
